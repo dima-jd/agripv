@@ -7,7 +7,14 @@
   "candidatesSnapshotAt": "2026-11-22T12:20:45.203Z",
   "candidatesMethodology": "agripv-screening/3.0.0",
   "constructionWatchBatchId": "spatial-intelligence-2026-11-22-001",
-  "assembledAt": "2026-11-22T16:18:17.775Z",
+  "counts": {
+    "projects": 9,
+    "plans": 117,
+    "candidates": 500,
+    "industrial": 175,
+    "public": 18184
+  },
+  "assembledAt": "2026-11-22T20:37:07.832Z",
   "potentialSources": [
     {
       "sourceId": "source-govmap-solar-potential-2025",

@@ -1,7 +1,13 @@
 {
   "reviewedAt": "2026-09-13",
-  "planningSourceLastEditAt": "2026-08-29T10:06:36.550Z",
+  "planningSourceLastEditAt": "2026-11-20T10:06:46.402Z",
+  "planningBatchId": "agro-2026-11-22-001",
+  "planningRetrievedAt": "2026-11-22T12:20:30.153Z",
   "potentialSnapshot": "solar-potential-2026-09-04-001",
+  "candidatesSnapshotAt": "2026-11-22T12:20:45.203Z",
+  "candidatesMethodology": "agripv-screening/3.0.0",
+  "constructionWatchBatchId": "spatial-intelligence-2026-11-22-001",
+  "assembledAt": "2026-11-22T16:18:17.775Z",
   "potentialSources": [
     {
       "sourceId": "source-govmap-solar-potential-2025",

@@ -41,3 +41,5 @@ body{overflow:hidden}#map-header{height:85px}#map-header .header-row{height:85px
 .factors td{text-align:end;font-variant-numeric:tabular-nums}
 #detail-content ul{padding-inline-start:20px}
 #detail-content li{margin:6px 0;font-size:15px}
+
+.layer-link{margin:10px 0 0;font-size:13px;font-weight:600}.layer-link a{color:var(--blue);min-height:24px;display:inline-flex;align-items:center}

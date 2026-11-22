@@ -1,0 +1,49 @@
+{
+  "generatedAt": "2026-11-22T21:07:03.860Z",
+  "methodologyVersion": "agripv-screening/3.0.0",
+  "parcelSource": {
+    "sourceId": "source-moag-agricultural-parcels-2026",
+    "url": "https://moag.maps.arcgis.com/home/item.html?id=7d49dd443df440999a05965dbb005d0a",
+    "layerLastEditAt": "2026-11-11T13:09:41.954Z",
+    "total": 200257
+  },
+  "planningSource": {
+    "batchId": "agro-2026-11-22-001",
+    "sourceLastEditAt": "2026-11-20T10:06:46.402Z",
+    "plans": 117
+  },
+  "eligibility": {
+    "sql": "CoverType='שטח פתוח' AND Dunam >= 20 AND Dunam <= 250 AND GrowthName IS NOT NULL AND AnafName <> 'לא מעובד'",
+    "serverCount": 34189,
+    "jsCount": 34189
+  },
+  "statusCounts": {
+    "too_small": 130980,
+    "covered": 24293,
+    "eligible": 33752,
+    "not_cultivated": 8018,
+    "too_large": 1936,
+    "inside_agro_plan": 1273,
+    "no_geometry": 3,
+    "missing_data": 1,
+    "existing_agrivoltaic": 1
+  },
+  "reasonCounts": {
+    "too_small": 161519,
+    "covered_or_structure": 24434,
+    "not_cultivated": 8600,
+    "too_large": 2024,
+    "inside_agro_plan": 1273,
+    "no_geometry": 3,
+    "area_missing": 1,
+    "existing_agrivoltaic": 1
+  },
+  "bandCounts": {
+    "medium": 16286,
+    "early": 8229,
+    "high": 9237
+  },
+  "ranked": 33752,
+  "shards": 1024,
+  "limits": "Screening only. Status and score rank evidence readiness, not technical, agronomic, legal or commercial suitability. Planning status is not construction evidence."
+}

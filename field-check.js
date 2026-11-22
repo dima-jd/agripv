@@ -34,7 +34,7 @@ export function searchParcels(features, query, district = "") {
   return features.filter(({ properties: p }) => {
     if (district && p.district !== district) return false;
     const aliases = { "מרכז": "central center", "נגב": "negev south southern", "צפון מרחב גליל גולן": "north northern galilee golan", "צפון מרחב עמקים": "north northern valleys", "שפלה והר": "shfela lowlands hills", "צפון": "north northern", "דרום": "south southern", "חיפה": "haifa", "ירושלים": "jerusalem" };
-    const haystack = normalizeSearch([p.candidateId, p.sourceParcelId, p.sourceFeatureId, p.name, p.locality, p.authority, p.district, aliases[p.district], p.crop, p.cropEnglish].join(" "));
+    const haystack = normalizeSearch([p.candidateId, p.sourceParcelId, p.sourceFeatureId, p.name, p.locality, p.authority, p.district, aliases[p.district], p.crop, p.cropNameEn, p.cropEnglish].join(" "));
     return terms.every(term => haystack.includes(term));
   });
 }

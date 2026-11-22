@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Every Farm Field — AgriPV Israel</title>
+<meta name="description" content="Every agricultural parcel in Israel's Ministry of Agriculture register, with its SPFI screening status, reasons and rank. Preliminary research, not a feasibility assessment.">
+<link rel="canonical" href="https://agripv.spfi.co.il/fields/">
+<link rel="icon" href="../favicon.svg">
+<meta property="og:site_name" content="AgriPV Israel"><meta property="og:type" content="website"><meta property="og:title" content="Every farm field in Israel — AgriPV Israel"><meta property="og:description" content="200,257 agricultural parcels with their screening status, reasons and rank. Preliminary research by SPFI using Ministry of Agriculture data."><meta property="og:url" content="https://agripv.spfi.co.il/fields/"><meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pmtiles@3.2.1/dist/pmtiles.js"></script>
+<style>
+  :root { --bg:#fff; --fg:#1d2327; --muted:#5f6b72; --line:#dde3e6; --panel:#f7f9fa; --accent:#1f6f43; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#15191b; --fg:#e8ecee; --muted:#9aa6ad; --line:#2c3337; --panel:#1c2124; --accent:#6fcf97; } }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--fg); font:14px/1.45 system-ui, "Segoe UI", Arial, sans-serif; }
+  #app { display:grid; grid-template-columns: 360px 1fr; height:100%; }
+  aside { border-inline-end:1px solid var(--line); overflow:auto; padding:16px; background:var(--panel); }
+  .crumbs { font-size:13px; margin:0 0 10px; } .crumbs a { color:var(--accent); display:inline-flex; min-height:24px; align-items:center; }
+  #map { height:100%; }
+  h1 { font-size:17px; margin:0 0 4px; }
+  .muted { color:var(--muted); font-size:12.5px; }
+  .row { display:flex; gap:8px; align-items:center; justify-content:space-between; }
+  input[type=search] { width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); font:inherit; }
+  button.lang { border:1px solid var(--line); background:var(--bg); color:var(--fg); border-radius:6px; padding:4px 10px; cursor:pointer; font:inherit; }
+  #results { list-style:none; margin:6px 0 0; padding:0; max-height:180px; overflow:auto; }
+  #results li { padding:6px 8px; border-radius:6px; cursor:pointer; }
+  #results li:hover, #results li:focus { background:var(--line); outline:none; }
+  .legend { margin:14px 0; display:grid; gap:4px; }
+  .legend div { display:flex; gap:8px; align-items:center; }
+  .sw { width:14px; height:14px; border-radius:3px; flex:none; border:1px solid rgba(0,0,0,.15); }
+  .legend .n { margin-inline-start:auto; color:var(--muted); font-variant-numeric:tabular-nums; }
+  #detail { border-top:1px solid var(--line); padding-top:12px; margin-top:8px; }
+  #detail dl { display:grid; grid-template-columns: auto 1fr; gap:4px 12px; margin:8px 0; }
+  #detail dt { color:var(--muted); } #detail dd { margin:0; }
+  .note { font-size:12.5px; color:var(--muted); border-inline-start:3px solid var(--accent); padding-inline-start:8px; margin:10px 0; }
+  .factor { display:flex; justify-content:space-between; font-size:12.5px; }
+  @media (max-width: 760px) { #app { grid-template-columns: 1fr; grid-template-rows: 45% 55%; } aside { order:2; border:0; border-top:1px solid var(--line); } }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside>
+    <nav class="crumbs" aria-label="AgriPV"><a id="back-map" href="../" data-t="back"></a> · <a id="to-spfi" href="https://spfi.co.il/" data-t="spfi"></a></nav><div class="row"><h1 data-t="title"></h1><button class="lang" id="lang" type="button"></button></div>
+    <p class="muted" data-t="subtitle"></p>
+    <label class="muted" for="q" data-t="searchLabel"></label>
+    <input id="q" type="search" autocomplete="off">
+    <ul id="results" role="listbox"></ul>
+    <div class="legend" id="legend"></div>
+    <p class="note" data-t="disclaimer"></p>
+    <p class="muted" id="meta"></p>
+    <div id="detail" hidden></div>
+  </aside>
+  <div id="map"></div>
+</div>
+<script>
+const T = {
+  en: { title:'Every farm field in Israel', subtitle:'Every agricultural parcel in the Ministry of Agriculture register, with its screening status.', searchLabel:'Find a locality (Hebrew name, e.g. שפיים) or a parcel ID', pageTitle:'Every Farm Field — AgriPV Israel', lang:'עברית', back:'← AgriPV map', spfi:'SPFI', openInMap:'Open this field in the AgriPV map ↗',
+    disclaimer:'A candidate is a screening result, not an approved or feasible project. Solar resource, shading effects on crops, land rights, grid and economics are not assessed. Preliminary research by SPFI using Ministry of Agriculture data; not an official agricultural or agrivoltaic feasibility assessment, and not a Ministry of Agriculture assessment or recommendation.',
+    meta:(m)=>`${m.parcelSource.total.toLocaleString('en')} parcels · ministry layer edited ${(m.parcelSource.layerLastEditAt||'unknown').slice(0,10)} · AGRO ${m.planningSource.batchId}`,
+    status:{ high:'Candidate — high screening priority', medium:'Candidate — medium', early:'Candidate — early', inside_agro_plan:'Inside an AGRO plan', existing_agrivoltaic:'Recorded as agrivoltaic', covered:'Greenhouse, net or structure', not_cultivated:'Not cultivated', too_small:'Under 20 dunam', too_large:'Over 250 dunam', missing_data:'Missing source data', check_failed:'Planning check failed' },
+    reasons:{ cover_type_missing:'Cover type not recorded', existing_agrivoltaic:'Cover type recorded as agrivoltaic', covered_or_structure:'Covered (greenhouse, net, tunnel or structure)', branch_missing:'Branch not recorded', not_cultivated:'Recorded as not cultivated', crop_missing:'Crop not recorded', area_missing:'Area not recorded', too_small:'Smaller than 20 dunam', too_large:'Larger than 250 dunam', no_geometry:'No boundary in source', inside_agro_plan:'Overlaps a current AGRO planning record', overlap_check_failed:'Planning overlap could not be checked' },
+    f:{ parcel:'Parcel ID', crop:'Crop', area:'Area', locality:'Locality', authority:'Authority', water:'Water', recorded:'Record last updated', yearOnly:'year only', why:'Why', score:'Screening score', rank:'National rank', plans:'AGRO plans touching this parcel', dunam:'dunam', none:'None', unknown:'Not recorded', factors:{ shape:'Shape', area:'Area', record_recency:'Record recency', attribute_completeness:'Data completeness', planning_clearance:'Planning clearance' } } },
+  he: { title:'כל החלקות החקלאיות בישראל', subtitle:'כל החלקות החקלאיות במרשם משרד החקלאות, עם סטטוס הסינון של כל אחת.', searchLabel:'חיפוש יישוב או מזהה חלקה', pageTitle:'כל החלקות החקלאיות — AgriPV ישראל', lang:'English', back:'→ למפת AgriPV', spfi:'SPFI', openInMap:'פתיחת החלקה במפת AgriPV ↖',
+    disclaimer:'חלקה מועמדת היא תוצאת סינון, לא פרויקט מאושר או בר-ביצוע. קרינת שמש, השפעת הצל על הגידול, זכויות בקרקע, חיבור לרשת וכדאיות כלכלית לא נבדקו. מחקר ראשוני של SPFI על בסיס נתוני משרד החקלאות; אינו בדיקת היתכנות חקלאית או אגרו-וולטאית רשמית, ואינו הערכה או המלצה של משרד החקלאות.',
+    meta:(m)=>`${m.parcelSource.total.toLocaleString('he')} חלקות · שכבת המשרד עודכנה ${(m.parcelSource.layerLastEditAt||'לא ידוע').slice(0,10)} · AGRO ${m.planningSource.batchId}`,
+    status:{ high:'מועמדת — עדיפות סינון גבוהה', medium:'מועמדת — בינונית', early:'מועמדת — ראשונית', inside_agro_plan:'בתוך תוכנית AGRO', existing_agrivoltaic:'רשומה כאגרו-וולטאית', covered:'חממה, רשת או מבנה', not_cultivated:'לא מעובדת', too_small:'מתחת ל-20 דונם', too_large:'מעל 250 דונם', missing_data:'חסרים נתוני מקור', check_failed:'בדיקת התכנון נכשלה' },
+    reasons:{ cover_type_missing:'סוג כיסוי לא נרשם', existing_agrivoltaic:'סוג הכיסוי רשום כאגרו-וולטאי', covered_or_structure:'שטח מכוסה (חממה, רשת, מנהרה או מבנה)', branch_missing:'ענף לא נרשם', not_cultivated:'רשומה כלא מעובדת', crop_missing:'גידול לא נרשם', area_missing:'שטח לא נרשם', too_small:'קטנה מ-20 דונם', too_large:'גדולה מ-250 דונם', no_geometry:'אין גבול במקור', inside_agro_plan:'חופפת לרשומת תכנון AGRO פעילה', overlap_check_failed:'לא ניתן היה לבדוק חפיפה תכנונית' },
+    f:{ parcel:'מזהה חלקה', crop:'גידול', area:'שטח', locality:'יישוב', authority:'רשות', water:'מים', recorded:'תאריך עדכון הרשומה', yearOnly:'שנה בלבד', why:'סיבה', score:'ציון סינון', rank:'דירוג ארצי', plans:'תוכניות AGRO הנוגעות בחלקה', dunam:'דונם', none:'אין', unknown:'לא נרשם', factors:{ shape:'צורה', area:'שטח', record_recency:'עדכניות הרשומה', attribute_completeness:'שלמות הנתונים', planning_clearance:'היעדר חפיפה תכנונית' } } },
+};
+const COLORS = { high:'#1a7f45', medium:'#5fb36f', early:'#b4dc9a', inside_agro_plan:'#7b4fc9', existing_agrivoltaic:'#2a6fdb', covered:'#8d969c', not_cultivated:'#c9ced1', too_small:'#e3c98f', too_large:'#c9a35c', missing_data:'#e07b39', check_failed:'#d6336c' };
+const LEGEND_KEYS = Object.keys(COLORS);
+let lang = 'en', meta = null, localities = [], current = null;
+const qs = new URLSearchParams(location.search); if (qs.get('lang') === 'he') lang = 'he';
+const e = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const norm = s => String(s ?? '').normalize('NFKC').toLowerCase().replace(/[֑-ׇ]/g, '').replace(/[’'"״׳-]/g, ' ').replace(/\s+/g, ' ').trim();
+
+const protocol = new pmtiles.Protocol(); maplibregl.addProtocol('pmtiles', protocol.tile);
+const map = new maplibregl.Map({ container:'map', center:[35.0, 31.6], zoom:7, maxBounds:[[33.5, 29.0], [36.5, 33.8]],
+  style:{ version:8, sources:{ osm:{ type:'raster', tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize:256, maxzoom:19, attribution:'© OpenStreetMap contributors' },
+    parcels:{ type:'vector', url:'pmtiles://' + new URL('parcels.pmtiles', location.href).href, attribution:'Parcels: <a href="https://moag.maps.arcgis.com/home/item.html?id=7d49dd443df440999a05965dbb005d0a" target="_blank" rel="noopener">Israel Ministry of Agriculture and Food Security, “Agricultural parcels for analysis”</a> · Plans: Israel Planning Administration (AGRO)' } },
+    layers:[ { id:'osm', type:'raster', source:'osm', paint:{ 'raster-saturation':-0.6, 'raster-opacity':0.85 } } ] } });
+const colorExpr = ['case', ['==', ['get','st'], 'eligible'], ['match', ['get','b'], 'high', COLORS.high, 'medium', COLORS.medium, COLORS.early], ['match', ['get','st'], ...Object.entries(COLORS).filter(([k]) => !['high','medium','early'].includes(k)).flat(), '#999']];
+map.on('load', () => {
+  map.addLayer({ id:'parcels-fill', type:'fill', source:'parcels', 'source-layer':'parcels', paint:{ 'fill-color':colorExpr, 'fill-opacity':['interpolate',['linear'],['zoom'],7,0.85,13,0.6] } });
+  map.addLayer({ id:'parcels-line', type:'line', source:'parcels', 'source-layer':'parcels', minzoom:12, paint:{ 'line-color':'#222', 'line-width':0.4, 'line-opacity':0.5 } });
+  map.addLayer({ id:'parcels-selected', type:'line', source:'parcels', 'source-layer':'parcels', filter:['==',['get','id'],-1], paint:{ 'line-color':'#ff2d55', 'line-width':3 } });
+});
+map.on('click', 'parcels-fill', ev => { const f = ev.features[0]; if (f) showParcel(f.properties.id); });
+map.on('mouseenter', 'parcels-fill', () => map.getCanvas().style.cursor = 'pointer');
+map.on('mouseleave', 'parcels-fill', () => map.getCanvas().style.cursor = '');
+
+async function getJSON(p) { const r = await fetch(p); if (!r.ok) throw new Error(p + ' ' + r.status); return r.json(); }
+const shardCache = new Map();
+async function parcelDetail(id) {
+  const shard = String(((Number(id) % 1024) + 1024) % 1024).padStart(4, '0');
+  if (!shardCache.has(shard)) shardCache.set(shard, getJSON(`detail/${shard}.json`));
+  return (await shardCache.get(shard))[id] ?? null;
+}
+function statusKey(d) { return d.status === 'eligible' ? d.screeningPriority : d.status; }
+
+async function showParcel(id, fly = false) {
+  const t = T[lang], d = await parcelDetail(id), box = document.getElementById('detail');
+  box.hidden = false;
+  if (!d) { box.innerHTML = `<p>${e(t.f.parcel)} ${e(id)}: ${e(t.f.unknown)}</p>`; return; }
+  current = id;
+  if (map.getLayer('parcels-selected')) map.setFilter('parcels-selected', ['==', ['get','id'], Number(id)]);
+  if (fly && d.bbox) map.fitBounds([[d.bbox[0], d.bbox[1]], [d.bbox[2], d.bbox[3]]], { padding:80, maxZoom:16 });
+  const crop = lang === 'he' ? d.crop : (d.cropNameEn || d.crop);
+  const date = d.sourceRecordDate ? `${d.sourceRecordDate}${d.sourceRecordDatePrecision === 'year' ? ` (${t.f.yearOnly})` : ''}` : t.f.unknown;
+  const why = d.reasons.length ? d.reasons.map(r => e(t.reasons[r] || r)).join('<br>') : '';
+  const factors = d.screeningFactors ? d.screeningFactors.map(x => `<div class="factor"><span>${e(t.f.factors[x.code] || x.code)}</span><span>${x.points} / ${x.maxPoints}</span></div>`).join('') : '';
+  const plans = d.planningOverlap?.plans?.length ? d.planningOverlap.plans.map(p => `${e(p.planNumber)} · ${(p.shareOfParcel * 100).toFixed(1)}% · ${e(p.statusMain)}`).join('<br>') : t.f.none;
+  box.innerHTML = `<div class="row"><strong><span class="sw" style="display:inline-block;vertical-align:-2px;background:${COLORS[statusKey(d)]}"></span> ${e(t.status[statusKey(d)])}</strong></div>
+    <dl><dt>${e(t.f.parcel)}</dt><dd>${e(d.id)}</dd><dt>${e(t.f.crop)}</dt><dd>${e(crop ?? t.f.unknown)}</dd>
+    <dt>${e(t.f.area)}</dt><dd>${d.areaDunam == null ? e(t.f.unknown) : e(d.areaDunam) + ' ' + e(t.f.dunam)}</dd>
+    <dt>${e(t.f.locality)}</dt><dd>${e(d.locality ?? t.f.unknown)}</dd><dt>${e(t.f.authority)}</dt><dd>${e(d.authority ?? t.f.unknown)}</dd>
+    <dt>${e(t.f.water)}</dt><dd>${e(d.waterType ?? t.f.unknown)}</dd><dt>${e(t.f.recorded)}</dt><dd>${e(date)}</dd>
+    ${why ? `<dt>${e(t.f.why)}</dt><dd>${why}</dd>` : ''}
+    ${d.screeningRank ? `<dt>${e(t.f.score)}</dt><dd>${e(d.screeningScore)} / 100</dd><dt>${e(t.f.rank)}</dt><dd>${d.screeningRank.toLocaleString(lang)}</dd>` : ''}
+    <dt>${e(t.f.plans)}</dt><dd>${plans}</dd></dl>${factors}${d.inMap ? `<p><a href="../?lang=${lang}&layer=candidates&record=agripv-parcel-${encodeURIComponent(d.id)}">${e(t.openInMap)}</a></p>` : ''}`;
+}
+
+function renderLegend() {
+  const t = T[lang], c = meta ? { ...meta.statusCounts, ...meta.bandCounts } : {};
+  document.getElementById('legend').innerHTML = LEGEND_KEYS.map(k => `<div><span class="sw" style="background:${COLORS[k]}"></span><span>${e(t.status[k])}</span><span class="n">${c[k] != null ? c[k].toLocaleString(lang) : ''}</span></div>`).join('');
+}
+function render() {
+  document.documentElement.lang = lang; document.documentElement.dir = lang === 'he' ? 'rtl' : 'ltr';
+  document.querySelectorAll('[data-t]').forEach(n => n.textContent = T[lang][n.dataset.t]);
+  document.title = T[lang].pageTitle;
+  document.getElementById('back-map').href = '../?lang=' + lang; document.getElementById('to-spfi').href = 'https://spfi.co.il/' + lang + '/';
+  document.getElementById('lang').textContent = T[lang].lang;
+  document.getElementById('meta').textContent = meta ? T[lang].meta(meta) : '';
+  renderLegend(); search(); if (current != null) showParcel(current);
+}
+function search() {
+  const q = norm(document.getElementById('q').value), ul = document.getElementById('results');
+  if (!q) { ul.innerHTML = ''; return; }
+  const items = [];
+  if (/^\d+$/.test(q)) items.push({ label:`${T[lang].f.parcel} ${q}`, go:() => showParcel(Number(q), true) });
+  for (const L of localities) { if (items.length >= 12) break; if (norm(L.locality).includes(q) || norm(L.authority).includes(q)) items.push({ label:`${L.locality ?? '—'} · ${L.authority ?? ''} (${L.eligible}/${L.parcels})`, go:() => map.fitBounds([[L.bbox[0], L.bbox[1]], [L.bbox[2], L.bbox[3]]], { padding:40, maxZoom:15 }) }); }
+  ul.innerHTML = items.map((x, i) => `<li tabindex="0" role="option" data-i="${i}">${e(x.label)}</li>`).join('');
+  ul.querySelectorAll('li').forEach(li => { const go = () => items[li.dataset.i].go(); li.onclick = go; li.onkeydown = ev => { if (ev.key === 'Enter') go(); }; });
+}
+document.getElementById('q').addEventListener('input', search);
+document.getElementById('lang').onclick = () => { lang = lang === 'en' ? 'he' : 'en'; render(); };
+render();
+Promise.all([getJSON('meta.json'), getJSON('localities.json')]).then(([m, l]) => { meta = m; localities = l; render(); }).catch(err => { document.getElementById('meta').textContent = String(err); });
+</script>
+</body>
+</html>

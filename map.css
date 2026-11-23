@@ -43,3 +43,13 @@ body{overflow:hidden}#map-header{height:85px}#map-header .header-row{height:85px
 #detail-content li{margin:6px 0;font-size:15px}
 
 .layer-link{margin:10px 0 0;font-size:13px;font-weight:600}.layer-link a{color:var(--blue);min-height:24px;display:inline-flex;align-items:center}
+
+/* Planning constraints overlay */
+.constraint-toggle{margin:.6rem 0;font-size:.92rem}
+.constraint-toggle label{display:flex;gap:.5rem;align-items:flex-start;min-height:24px;cursor:pointer}
+.constraint-toggle input{margin-top:.2rem;width:18px;height:18px;flex:none}
+.constraint-legend{list-style:none;margin:.4rem 0;padding:0;display:grid;gap:.2rem}
+.constraint-legend li{display:flex;gap:.45rem;align-items:center}
+.constraint-legend .swatch{width:14px;height:14px;border:2px solid;border-radius:2px;flex:none}
+.constraint-legend .swatch.dashed{border-style:dashed}
+.constraint-hits{margin:.3rem 0;padding-inline-start:1.2rem}

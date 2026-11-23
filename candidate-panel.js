@@ -76,6 +76,7 @@ export function candidatePanelHTML(r, lang) {
   return `<span class="tag">${t('Candidate field', 'חלקה מועמדת')}</span><h2 id="detail-title">${e(title)}</h2><p class="detail-sub">${sub}</p>
   <dl class="glance">${facts}</dl>
   <p class="glance-note">${t('A screening result, not an approved or feasible project. Only the priority comes from the ranking; the other facts are information.', 'תוצאת סינון, לא פרויקט מאושר או בר-ביצוע. רק העדיפות נובעת מהדירוג; שאר הנתונים הם מידע.')}</p>
+  <p class="design-link"><a href="./design/?id=${encodeURIComponent(r.id)}&lang=${lang}">${t('Concept designs: three agrivoltaic layouts for this field', 'תכנוני קונספט: שלוש פריסות אגרו-וולטאיות לחלקה זו')} ↗</a></p>
   ${sections}
   <section class="credits" aria-labelledby="credits-title"><h3 id="credits-title">${t('Sources and notices', 'מקורות והבהרות')}</h3><ul>${credits.map(c => `<li>${e(c)}</li>`).join('')}</ul><p>${e(notice)}</p></section>`;
 }

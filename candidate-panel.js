@@ -3,6 +3,11 @@
 import { safeURL, districtLabels } from './map-data.js';
 import { kindLabel } from './constraints-overlay.js';
 import { LEVELS, BANDS } from './env-overlay.js';
+import { VARIANTS, toLocal, layout } from './design/layout.js';
+import { recommend, fitLabel } from './design/recommend.js';
+const SHADE = { tolerant: ['Tolerates moderate shade', 'עמיד לצל מתון'], moderate: ['Some yield loss under shade', 'אובדן יבול מסוים בצל'], sensitive: ['Shade-sensitive', 'רגיש לצל'], unknown: ['Not enough evidence', 'אין די ראיות'] };
+const GROUPS = { maize: ['maize', 'תירס'], grain_legumes: ['grain legumes', 'קטניות'], forages: ['forage', 'מספוא'], leafy_vegetables: ['leafy vegetables', 'ירקות עלים'], fruiting_vegetables: ['fruiting vegetables', 'ירקות פרי'], berries: ['berries', 'פירות יער'], cereals: ['cereals', 'דגנים'], tubers_roots: ['tubers and roots', 'פקעות ושורשים'], fruits: ['fruit trees', 'עצי פרי'] };
+const CITE = { laub2022: 'Laub et al. 2022', schweiger2023: 'Schweiger et al. 2023', pataczek2023: 'Pataczek et al. 2023', fraunhofer2017: 'Fraunhofer ISE 2017' };
 
 const e = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const FACTORS = { shape: ['Field shape', 'צורת החלקה'], area: ['Field area', 'שטח החלקה'], record_recency: ['Ministry record recency', 'עדכניות הרשומה במשרד'], attribute_completeness: ['Data completeness', 'שלמות הנתונים'], planning_clearance: ['No overlap with AGRO plans', 'אין חפיפה לתוכניות AGRO'] };
@@ -27,6 +32,8 @@ export function candidatePanelHTML(r, lang) {
   const district = (r.districtKeys || []).map(k => districtLabels[k]?.[i] || k)[0] || r.district;
   const s = raw.solarResource, tr = raw.terrain, en = raw.environment, g = raw.gridProximity;
   const hits = raw.constraints?.hits || [], flags = hits.filter(h => h.level === 'overlap' || h.check === 'failed');
+  const cs = raw.cropShade, rec = recommend(raw.category, cs);
+  let ind = null; try { if (r.geometry) { const Lp = layout(toLocal(r.geometry), VARIANTS[rec.primary]); const y = raw.designYield?.[rec.primary]; ind = { k: rec.primary, mwp: Lp.figures.kWp / 1000, gwh: y ? Lp.figures.kWp * y / 1e6 : null }; } } catch { ind = null; }
 
   // ---- header and at-a-glance facts
   const title = raw.screeningRank ? t(`Screening rank #${num(raw.screeningRank)}`, `דירוג סינון: מקום ${num(raw.screeningRank)}`) : t('Candidate field', 'חלקה מועמדת');
@@ -39,6 +46,8 @@ export function candidatePanelHTML(r, lang) {
     fact(t('Mean slope', 'שיפוע ממוצע'), tr ? `${e(tr.slopeMeanDeg)}°` : unknown, tr ? `${t('elevation', 'גובה')} ${num(tr.elevationMeanM)} ${t('m', 'מ׳')}` : null),
     fact(t('Environmental sensitivity', 'רגישות סביבתית'), en?.sensitivityLevel ? `${e(en.sensitivityLevel)} — ${e(LEVELS[en.sensitivityLevel]?.[he ? 2 : 1])}` : unknown, en ? t('Ministry level, 1–6', 'רמת המשרד, 1–6') : null),
     fact(t('Mapped HV line', 'קו מתח עליון ממופה'), g ? e(BANDS[g.hvLineBand]?.[i]) : unknown, g ? `${t('substation', 'תחנת משנה')} ${BANDS[g.substationBand]?.[i] ?? ''}` : null),
+    fact(t('Crop and shade', 'גידול וצל'), cs ? e((SHADE[cs.class] || SHADE.unknown)[i]) : unknown, cs?.group ? `${(GROUPS[cs.group] || [cs.group, cs.group])[i]}${cs.tallTrees ? ' · ' + t('tall trees', 'עצים גבוהים') : ''}` : null),
+    fact(t('Indicative design', 'תכנון אינדיקטיבי'), ind ? `${e(ind.k)}. ${num(ind.mwp, 1)} MWp` : unknown, ind ? `${e(VARIANTS[ind.k].name[i])}${ind.gwh ? ' · ~' + num(ind.gwh, 1) + ' GWh/' + t('yr', 'שנה') : ''}` : null),
   ].join('');
 
   // ---- folded sections
@@ -52,6 +61,8 @@ export function candidatePanelHTML(r, lang) {
       `<dl class="kv"><dt>${t('Crop', 'גידול')}</dt><dd>${e(crop || unknown)}</dd><dt>${t('Area', 'שטח')}</dt><dd>${raw.areaDunam != null ? `${e(num(raw.areaDunam, 1))} ${t('dunam', 'דונם')}` : unknown}</dd><dt>${t('Record updated', 'עדכון הרשומה')}</dt><dd>${e(recDate || unknown)}${raw.sourceRecordDatePrecision === 'year' ? ` (${t('year only', 'שנה בלבד')})` : ''}</dd></dl><p class="note">${t('Values as recorded by the Ministry. The update date is when the record changed, not a field visit.', 'הערכים כפי שנרשמו במשרד. תאריך העדכון הוא מועד שינוי הרשומה, לא ביקור בשטח.')}</p>${link(r.url, t('View source dataset', 'למערך נתוני המקור'))}`),
     sec(t('Planning constraints', 'מגבלות תכנוניות'), flags.length ? e(num(flags.length)) : e(t('None', 'אין')),
       `${hits.length ? `<ul class="hits">${hits.map(h => `<li>${e(kindLabel(h.kind, lang))}${h.name ? ' · ' + e(h.name) : ''}${h.shareOfParcel != null ? ` · ${(h.shareOfParcel * 100).toFixed(1)}%` : ''}${h.level === 'edge_contact' ? ` (${t('edge contact', 'נגיעה בשוליים')})` : ''}${h.level === 'crosses' ? ` (${t('crosses the field; the stream bed is excluded, its extent is to check', 'חוצה את החלקה; אפיק הנחל מוחרג, יש לבדוק את התחום')})` : ''}${h.status === 'proposed' ? ` — ${t('proposal in process', 'הצעה בהליך')}` : ''}</li>`).join('')}</ul>` : `<p>${t('None found in TAMA 1 or TAMA 1/26.', 'לא נמצאו בתמ״א 1 או בתמ״א 1/26.')}</p>`}<p class="note">${t('Fields in areas where TAMA 1/24 (s. 3.5.1) does not allow agrivoltaics are already excluded: reserves and parks, forests, coastal and landscape complexes, the coastal environment. Other overlaps are flags to check, not a ruling.', 'חלקות בשטחים שבהם תמ״א 1/24 (סעיף 3.5.1) אינה מתירה אגרו-וולטאיקה כבר הוחרגו: שמורות וגנים, יערות, מכלולי חוף ונוף, הסביבה החופית. חפיפות אחרות הן סימונים לבדיקה, לא הכרעה.')}${raw.constraints?.checkedAt ? ` ${t('Checked', 'נבדק')} ${e(fmtDay(raw.constraints.checkedAt, lang))}.` : ''}</p>`),
+    sec(t('Crop compatibility', 'התאמת הגידול'), cs ? e((SHADE[cs.class] || SHADE.unknown)[i]) : unknown,
+      `<p>${t('Fit of each concept variant for this crop:', 'התאמת כל חלופת קונספט לגידול זה:')}</p><ul class="hits">${['A', 'B', 'C'].map(k => `<li><strong>${k}. ${e(VARIANTS[k].name[i])}</strong>: ${e(fitLabel(rec.fits[k].fit, lang))}${k === rec.primary ? ' · ' + t('recommended', 'מומלץ') : ''}. ${e(rec.fits[k].why[i])}</li>`).join('')}</ul>${cs?.tallTrees ? `<p>${t('Mature trees of this crop can be taller than a 4.5 m structure: check pruning height.', 'עצים בוגרים מגידול זה עלולים להיות גבוהים ממבנה של 4.5 מ׳: יש לבדוק את גובה הגיזום.')}</p>` : ''}<p class="note">${t('Shade classes summarise published evidence, mostly from temperate climates and shade-cloth trials; they are not a yield prediction for this field.', 'סיווגי הצל מסכמים ראיות שפורסמו, בעיקר מאקלים ממוזג ומניסויי רשתות הצללה; אין הם תחזית יבול לחלקה זו.')}${cs?.sources?.length ? ' ' + t('Sources', 'מקורות') + ': ' + e(cs.sources.map(x => CITE[x] || x).join('; ')) + '.' : ''}</p>`),
     sec(t('Solar resource', 'משאב סולארי'), s ? `${e(num(s.pvoutKwhPerKwpYear))} ${t('kWh/kWp', 'קוט״ש לקילוואט שיא')}` : unknown,
       s ? `<p>${t('Annual output of a 1 kWp reference system at the optimal fixed tilt', 'תפוקה שנתית של מערכת ייחוס של 1 קילוואט שיא בזווית קבועה אופטימלית')} (${e(s.optimalTiltDeg)}°), ${t('averaged over about 5 km', 'בממוצע על פני כ-5 ק״מ')}.</p><p class="note">${t('Describes the area’s sunshine, not the yield of an agrivoltaic design.', 'מתאר את הקרינה באזור, לא את התפוקה של מערכת אגרו-וולטאית.')}</p>` : `<p>${unknown}</p>`),
     sec(t('Terrain', 'טופוגרפיה'), tr ? `${e(tr.slopeMeanDeg)}°` : unknown,

@@ -15,6 +15,7 @@
     "sensitivity": "2024-04-01T09:35:46.629Z",
     "landscape_division": "2024-04-01T09:35:46.926Z"
   },
+  "waterRetrievedAt": "2026-11-23T20:31:32.359Z",
   "counts": {
     "projects": 9,
     "plans": 117,
@@ -24,9 +25,10 @@
     "pvplans": 153,
     "storage": 32,
     "constraints": 4745,
-    "environment": 671
+    "environment": 671,
+    "water": 515
   },
-  "assembledAt": "2026-11-23T20:19:58.470Z",
+  "assembledAt": "2026-11-23T20:45:45.019Z",
   "potentialSources": [
     {
       "sourceId": "source-govmap-solar-potential-2025",

@@ -11,6 +11,7 @@ export const CONSTRAINT_KINDS = {
   coastal_fabric: { color: '#0369a1', fill: .05, dash: true, label: ['Coastal fabric (TAMA 35): excluded in three zones', 'מרקם חופי (תמ״א 35): מוחרג בשלושה אזורים'] },
   high_landscape_sensitivity: { color: '#7c2d12', fill: .05, dash: true, label: ['High landscape-environmental sensitivity (TAMA 35)', 'רגישות נופית-סביבתית גבוהה (תמ״א 35)'] },
   flood: { color: '#2563eb', fill: .16, label: ['Flood area', 'שטח הצפה'] },
+  stream: { color: '#2563eb', line: true, label: ['Stream (TAMA 1): bed and surroundings excluded', 'נחל (תמ״א 1): האפיק וסביבותיו מוחרגים'] },
   coast_line: { color: '#0284c7', line: true, label: ['Coastal environment line (300 m)', 'קו סביבה חופית (300 מ׳)'] },
   proposed_reserve_park: { color: '#15803d', fill: .06, dash: true, label: ['Proposed reserve or park (in process)', 'שמורה או גן מוצעים (בהליך)'] },
   proposed_protected: { color: '#15803d', fill: .06, dash: true, label: ['Proposed protected area (in process)', 'שטח מוגן מוצע (בהליך)'] },

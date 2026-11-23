@@ -2,6 +2,9 @@
 // URL: design/?id=agripv-parcel-<ID>&v=A|B|C&lang=en|he. Concept for research, not for construction.
 import { VARIANTS, MODULE, SETBACK, PAD, COVER_MAX, toLocal, layout, sectionOf, heightCheck, components } from './layout.js';
 import { planSVG, sectionSVG } from './draw.js';
+import { recommend, fitLabel } from './recommend.js';
+const SHADE = { tolerant: ['Tolerates moderate shade', 'עמיד לצל מתון'], moderate: ['Some yield loss under shade', 'אובדן יבול מסוים בצל'], sensitive: ['Shade-sensitive', 'רגיש לצל'], unknown: ['Not enough evidence', 'אין די ראיות'] };
+const CITE = { laub2022: 'Laub et al. 2022, Agron. Sustain. Dev.', schweiger2023: 'Schweiger et al. 2023, Plants People Planet', pataczek2023: 'Pataczek et al. 2023, Physiol. Plant.', fraunhofer2017: 'Fraunhofer ISE 2017, Heggelbach trial' };
 
 const e = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const params = new URLSearchParams(location.search);
@@ -24,7 +27,6 @@ async function load() {
 }
 
 const isFieldCrop = p => /גד"ש|גידולי שדה/.test(p.category || '');
-const suits = (k, fieldCrop) => fieldCrop ? (k === 'A' || k === 'C') : (k === 'B' || k === 'A');
 
 function sync() {
   const u = new URL(location.href);
@@ -45,8 +47,8 @@ function render() {
     main.innerHTML = `<h1>${t('Field not found', 'החלקה לא נמצאה')}</h1><p>${t('Concept designs exist for the 500 published candidate fields. Open a candidate field on the map and choose “Concept designs”.', 'תכנוני קונספט קיימים ל-500 החלקות המועמדות שפורסמו. פתחו חלקה מועמדת במפה ובחרו "תכנוני קונספט".')}</p>`;
     return;
   }
-  const p = field.properties, fieldCrop = isFieldCrop(p);
-  variantKey ??= fieldCrop ? 'A' : 'B';
+  const p = field.properties, fieldCrop = isFieldCrop(p), rec = recommend(p.category, p.cropShade);
+  variantKey ??= rec.primary;
   const v = VARIANTS[variantKey];
   const L = layout(local, v);
   const F = L.figures, sec = sectionOf(v), hc = heightCheck(v, fieldCrop), comp = components(F, v);
@@ -56,8 +58,8 @@ function render() {
   document.title = t(`Concept designs · screening rank #${p.screeningRank} — AgriPV Israel`, `תכנוני קונספט · מקום ${p.screeningRank} בדירוג — AgriPV ישראל`);
 
   const all = ['A', 'B', 'C'].map(k => { const Lk = layout(local, VARIANTS[k]), sk = sectionOf(VARIANTS[k]), yk = p.designYield?.[k] ?? null; return { k, L: Lk, s: sk, mwh: yk ? Lk.figures.kWp * yk / 1000 : null }; });
-  const compare = `<div class="compare-wrap"><table class="compare"><caption>${t('All three variants on this field', 'שלוש החלופות בחלקה זו')}</caption><thead><tr><th scope="col">${t('Variant', 'חלופה')}</th><th scope="col">${t('Capacity', 'הספק')}</th><th scope="col">${t('Output per year', 'תפוקה שנתית')}</th><th scope="col">${t('Panel cover', 'כיסוי')}</th><th scope="col">${t('Heights', 'גבהים')}</th><th scope="col">${t('Crop fit', 'התאמה לגידול')}</th></tr></thead><tbody>${all.map(a => `<tr${a.k === variantKey ? ' class="cur"' : ''}><th scope="row">${a.k}. ${e(VARIANTS[a.k].name[lang === 'he' ? 1 : 0])}</th><td>${num(a.L.figures.kWp / 1000, 1)} MWp</td><td>${a.mwh ? num(a.mwh / 1000, 1) + ' GWh' : t('unknown', 'לא ידוע')}</td><td>${num(a.L.figures.cover * 100, 1)}%</td><td>${num(a.s.lowerEdge, 1)}–${num(a.s.top, 1)}${m()}</td><td>${suits(a.k, fieldCrop) ? t('suits', 'מתאים') : '—'}</td></tr>`).join('')}</tbody></table></div>`;
-  const tabs = ['A', 'B', 'C'].map(k => `<button type="button" role="tab" class="v-tab${k === variantKey ? ' active' : ''}" aria-selected="${k === variantKey}" data-v="${k}"><span class="v-key">${k}</span><span class="v-name">${e(VARIANTS[k].name[lang === 'he' ? 1 : 0])}</span>${suits(k, fieldCrop) ? `<span class="v-fit">${t('suits this crop', 'מתאים לגידול')}</span>` : ''}</button>`).join('');
+  const compare = `<div class="compare-wrap"><table class="compare"><caption>${t('All three variants on this field', 'שלוש החלופות בחלקה זו')}</caption><thead><tr><th scope="col">${t('Variant', 'חלופה')}</th><th scope="col">${t('Capacity', 'הספק')}</th><th scope="col">${t('Output per year', 'תפוקה שנתית')}</th><th scope="col">${t('Panel cover', 'כיסוי')}</th><th scope="col">${t('Heights', 'גבהים')}</th><th scope="col">${t('Crop fit', 'התאמה לגידול')}</th></tr></thead><tbody>${all.map(a => `<tr${a.k === variantKey ? ' class="cur"' : ''}><th scope="row">${a.k}. ${e(VARIANTS[a.k].name[lang === 'he' ? 1 : 0])}</th><td>${num(a.L.figures.kWp / 1000, 1)} MWp</td><td>${a.mwh ? num(a.mwh / 1000, 1) + ' GWh' : t('unknown', 'לא ידוע')}</td><td>${num(a.L.figures.cover * 100, 1)}%</td><td>${num(a.s.lowerEdge, 1)}–${num(a.s.top, 1)}${m()}</td><td><span class="fit fit-${rec.fits[a.k].fit}">${e(fitLabel(rec.fits[a.k].fit, lang))}</span></td></tr>`).join('')}</tbody></table></div>`;
+  const tabs = ['A', 'B', 'C'].map(k => `<button type="button" role="tab" class="v-tab${k === variantKey ? ' active' : ''}" aria-selected="${k === variantKey}" data-v="${k}"><span class="v-key">${k}</span><span class="v-name">${e(VARIANTS[k].name[lang === 'he' ? 1 : 0])}</span><span class="v-fit fit-${rec.fits[k].fit}">${e(fitLabel(rec.fits[k].fit, lang))}${k === rec.primary ? ' · ' + t('recommended', 'מומלץ') : ''}</span></button>`).join('');
   const fig = (label, value, note) => `<div class="fact"><dt>${e(label)}</dt><dd>${value}${note ? `<span>${e(note)}</span>` : ''}</dd></div>`;
   const facts = [
     fig(t('Capacity', 'הספק'), `${num(F.kWp / 1000, 1)} MWp`, `${num(F.modules)} ${t('modules', 'פאנלים')} · ~${MODULE.wp} Wp`),
@@ -85,6 +87,7 @@ function render() {
   <section class="v-panel" role="tabpanel" aria-labelledby="v-title">
     <h2 id="v-title">${variantKey}. ${e(v.name[lang === 'he' ? 1 : 0])}</h2>
     <p class="v-desc">${e(v.describe[lang === 'he' ? 1 : 0])}</p>
+    <div class="cropfit fit-box-${rec.fits[variantKey].fit}"><p><strong>${t('Crop fit', 'התאמה לגידול')}: ${e(fitLabel(rec.fits[variantKey].fit, lang))}</strong> — ${e(rec.fits[variantKey].why[lang === 'he' ? 1 : 0])}</p><p class="d-note">${e(crop)}: ${e((SHADE[p.cropShade?.class] || SHADE.unknown)[lang === 'he' ? 1 : 0])}${p.cropShade?.sources?.length ? ` (${e(p.cropShade.sources.map(s => CITE[s] || s).join('; '))})` : ''}. ${t('Indicative: evidence is mostly from temperate climates and shade-cloth trials, not a yield prediction for this field.', 'אינדיקטיבי: הראיות הן בעיקר מאקלים ממוזג ומניסויי רשתות הצללה, ואינן תחזית יבול לחלקה זו.')}</p></div>
     <div class="drawings">
       <figure class="drawing plan"><figcaption>${t('Plan view on the field', 'מבט על החלקה')}</figcaption>${planSVG(local, L, t)}
         <ul class="d-legend"><li><span class="sw row"></span>${t('Panel rows', 'שורות פאנלים')}</li><li><span class="sw plot"></span>${t('Control plot (no panels)', 'חלקת ביקורת (ללא פאנלים)')}</li><li><span class="sw pad"></span>${t('Equipment pad', 'משטח ציוד')}</li><li><span class="sw edge"></span>${t(`${SETBACK} m access strip inside the boundary`, `רצועת גישה של ${SETBACK} מ׳ לאורך הגבול`)}</li></ul></figure>

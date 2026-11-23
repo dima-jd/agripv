@@ -82,3 +82,7 @@ body{background:var(--paper,#f6f7f3);color:var(--ink,#152029)}
 @media(max-width:860px){.compare{font-size:12.5px}.compare th,.compare td{padding:6px}}
 .compare-wrap{overflow-x:auto;max-width:100%}.compare-wrap .compare{min-width:560px}
 .side{display:flex;flex-direction:column;gap:16px}.side .glance{grid-template-columns:1fr 1fr;margin:0}
+.fit{font-weight:600}.fit-good{color:#166534}.fit-possible{color:#92400e}.fit-poor{color:#991b1b}
+.v-fit.fit-possible{color:#92400e}.v-fit.fit-poor{color:#991b1b}
+.cropfit{margin:0 0 14px;padding:10px 14px;border-radius:8px;border:1px solid var(--line);background:#fff}
+.cropfit p{margin:4px 0}.fit-box-good{border-inline-start:4px solid #16a34a}.fit-box-possible{border-inline-start:4px solid #d97706}.fit-box-poor{border-inline-start:4px solid #dc2626}

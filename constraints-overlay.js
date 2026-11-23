@@ -18,7 +18,9 @@ export const CONSTRAINT_KINDS = {
   proposed_corridor: { color: '#a16207', fill: .05, dash: true, label: ['Proposed ecological corridor (in process)', 'מסדרון אקולוגי מוצע (בהליך)'] },
   proposed_bottleneck: { color: '#c2410c', fill: .08, dash: true, label: ['Proposed ecological bottleneck (in process)', 'צוואר בקבוק אקולוגי מוצע (בהליך)'] },
 };
-export const kindLabel = (kind, lang) => (CONSTRAINT_KINDS[kind]?.label || [kind, kind])[lang === 'he' ? 1 : 0];
+// Kinds tested without a drawn polygon (no legend swatch)
+const EXTRA_LABELS = { coastal_environment: ['Coastal environment zone (within 300 m of the shore)', 'תחום הסביבה החופית (עד 300 מ׳ מקו החוף)'] };
+export const kindLabel = (kind, lang) => (CONSTRAINT_KINDS[kind]?.label || EXTRA_LABELS[kind] || [kind, kind])[lang === 'he' ? 1 : 0];
 
 let cache = null;
 export function loadConstraints() {

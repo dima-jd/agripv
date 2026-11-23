@@ -36,19 +36,5 @@ export function envToggleHTML(on, lang, data) {
   return `<div class="constraint-toggle env-toggle"><label><input type="checkbox" id="show-environment"${on ? ' checked' : ''}> ${t('Show environmental sensitivity (Ministry of Environmental Protection)', 'הצגת רגישות סביבתית (המשרד להגנת הסביבה)')}</label>${legend}</div>`;
 }
 
-/** Candidate detail: sensitivity of the unit covering most of the field (Ministry value), and the landscape division. */
-export function candidateEnvironmentHTML(raw, lang) {
-  const s = raw?.environment, he = lang === 'he', i = he ? 1 : 0, t = (en, h) => he ? h : en;
-  const lv = n => n ? `${n} — ${e(LEVELS[n]?.[he ? 2 : 1] ?? '')}` : t('unknown', 'לא ידוע');
-  const body = s ? `<p>${t('Sensitivity of the open-space unit covering most of the field', 'רגישות יחידת השטח הפתוח שמכסה את רוב החלקה')}: <strong>${lv(s.sensitivityLevel)}</strong>${s.sensitivityUnit ? ` (${e(s.sensitivityUnit)})` : ''}${s.maxLevelInField && s.maxLevelInField !== s.sensitivityLevel ? ` · ${t('highest level touching the field', 'הרמה הגבוהה ביותר שנוגעת בחלקה')}: ${lv(s.maxLevelInField)}` : ''}${s.landscapeDivision ? ` · ${t('landscape division', 'חטיבת נוף')}: ${s.landscapeDivisionLink ? `<a href="${e(s.landscapeDivisionLink)}" target="_blank" rel="noopener noreferrer">${e(s.landscapeDivision)}</a>` : e(s.landscapeDivision)}` : ''}</p>`
-    : `<p>${t('Unknown: the field is outside the Ministry units.', 'לא ידוע: החלקה מחוץ ליחידות המשרד.')}</p>`;
-  return `<h3>${t('Environmental sensitivity', 'רגישות סביבתית')}</h3>${body}<p class="method-note">${t('The level is the Ministry’s, unchanged; SPFI only finds which unit covers the field. A preliminary screening indicator, not an environmental assessment, and not part of the screening score. ', 'הרמה היא של המשרד, ללא שינוי; SPFI רק מאתר איזו יחידה מכסה את החלקה. מדד סינון ראשוני, לא הערכה סביבתית, ואינו חלק מציון הסינון. ')}${e(MOEP[i])} ${e(INDEP[i])}</p>`;
-}
 
-const BANDS = { lt1km: ['under 1 km', 'פחות מ-1 ק״מ'], '1to3km': ['1–3 km', '1–3 ק״מ'], '3to10km': ['3–10 km', '3–10 ק״מ'], gt10km: ['over 10 km', 'מעל 10 ק״מ'], lt5km: ['under 5 km', 'פחות מ-5 ק״מ'], '5to15km': ['5–15 km', '5–15 ק״מ'], gt15km: ['over 15 km', 'מעל 15 ק״מ'] };
-/** Candidate detail: distance bands to mapped ≥110 kV infrastructure (OSM). */
-export function candidateGridHTML(raw, lang) {
-  const g = raw?.gridProximity, he = lang === 'he', i = he ? 1 : 0, t = (en, h) => he ? h : en;
-  const body = g ? `<p>${t('Mapped high-voltage line (≥110 kV)', 'קו מתח עליון ממופה (≥110 ק״ו)')}: <strong>${e(BANDS[g.hvLineBand]?.[i])}</strong> · ${t('mapped substation (≥110 kV)', 'תחנת משנה ממופה (≥110 ק״ו)')}: <strong>${e(BANDS[g.substationBand]?.[i])}</strong></p>` : `<p>${t('Unknown.', 'לא ידוע.')}</p>`;
-  return `<h3>${t('Grid proximity (mapped infrastructure)', 'קרבה לרשת (תשתית ממופה)')}</h3>${body}<p class="method-note">${t('Distance from the field centre to infrastructure mapped in OpenStreetMap, in broad bands. It says nothing about available capacity, and it is not a connection offer, reservation or approval. Connection feasibility is decided only through the network operator’s procedures. Not part of the screening score. © OpenStreetMap contributors (ODbL).', 'מרחק ממרכז החלקה לתשתית הממופה ב-OpenStreetMap, בטווחים רחבים. אין בו מידע על קיבולת פנויה, והוא אינו הצעת חיבור, שריון או אישור. היתכנות חיבור נקבעת רק בהליכים מול מפעיל הרשת. אינו חלק מציון הסינון. © OpenStreetMap contributors (ODbL).')}</p>`;
-}
+export const BANDS = { lt1km: ['under 1 km', 'פחות מ-1 ק״מ'], '1to3km': ['1–3 km', '1–3 ק״מ'], '3to10km': ['3–10 km', '3–10 ק״מ'], gt10km: ['over 10 km', 'מעל 10 ק״מ'], lt5km: ['under 5 km', 'פחות מ-5 ק״מ'], '5to15km': ['5–15 km', '5–15 ק״מ'], gt15km: ['over 15 km', 'מעל 15 ק״מ'] };

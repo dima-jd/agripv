@@ -40,27 +40,5 @@ export function constraintsToggleHTML(on, lang, data) {
   return `<div class="constraint-toggle"><label><input type="checkbox" id="show-constraints"${on ? ' checked' : ''}> ${t('Show planning constraints (reserves, parks, forests, flood areas)', 'הצגת מגבלות תכנוניות (שמורות, גנים, יערות, שטחי הצפה)')}</label>${legend}</div>`;
 }
 
-/** Candidate detail: terrain from the Copernicus DEM. Not part of the score. */
-export function candidateTerrainHTML(raw, lang) {
-  const s = raw?.terrain, he = lang === 'he', t = (en, h) => he ? h : en;
-  const pct = v => Math.round(v * 100) + '%';
-  const body = s ? `<p>${t('Mean slope', 'שיפוע ממוצע')}: <strong>${e(s.slopeMeanDeg)}°</strong> · ${t('steepest 10% of the field', '10% התלולים ביותר בחלקה')}: ${e(s.slopeP90Deg)}° · ${t('steeper than 10%', 'תלול מ-10%')}: ${pct(s.shareOver10Pct)} · ${t('north-facing', 'פונה צפונה')}: ${pct(s.northFacingShare)} · ${t('elevation', 'גובה')}: ${e(s.elevationMeanM)} ${t('m', 'מ׳')}</p>`
-    : `<p>${t('Unknown: not computed for this field.', 'לא ידוע: לא חושב לחלקה זו.')}</p>`;
-  return `<h3>${t('Terrain', 'טופוגרפיה')}</h3>${body}<p class="method-note">${t('From the Copernicus elevation model at about 30 m, over the pixels inside the field. Steep or north-facing ground usually makes solar mounting harder and less productive. Information only, not part of the screening score. ', 'מתוך מודל הגבהים של Copernicus ברזולוציה של כ-30 מ׳, על פני הפיקסלים שבתוך החלקה. קרקע תלולה או פונה צפונה מקשה בדרך כלל על התקנה סולארית ומפחיתה תפוקה. מידע בלבד, לא חלק מציון הסינון. ')}Produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved.</p>`;
-}
 
-/** Candidate detail: solar resource for the field's area (PVGIS). Not part of the score. */
-export function candidateSolarHTML(raw, lang) {
-  const s = raw?.solarResource, he = lang === 'he', t = (en, h) => he ? h : en;
-  const body = s ? `<p>${t('Annual PV output, reference system', 'תפוקה סולארית שנתית, מערכת ייחוס')}: <strong>${Number(s.pvoutKwhPerKwpYear).toLocaleString(lang)} ${t('kWh per kWp', 'קוט״ש לקילוואט שיא')}</strong> · ${t('optimal tilt', 'זווית אופטימלית')} ${e(s.optimalTiltDeg)}°</p>`
-    : `<p>${t('Unknown: no value for this area.', 'לא ידוע: אין ערך לאזור זה.')}</p>`;
-  return `<h3>${t('Solar resource (area)', 'משאב סולארי (אזור)')}</h3>${body}<p class="method-note">${t(`For a 1 kWp fixed system at the optimal angle with 14% losses, averaged over about 5 km (${e(s?.radiationDb || 'PVGIS-SARAH3')}, ${e(s?.years || '2005–2023')}). It describes the area's sunshine, not the yield of an agrivoltaic design, and it is not part of the screening score. `, `למערכת קבועה של 1 קילוואט שיא בזווית האופטימלית עם 14% הפסדים, בממוצע על פני כ-5 ק״מ (${e(s?.radiationDb || 'PVGIS-SARAH3')}, ${e(s?.years || '2005–2023')}). הנתון מתאר את הקרינה באזור, לא תפוקה של מערכת אגרו-וולטאית, ואינו חלק מציון הסינון. `)}${t('Data and calculations based on PVGIS – © European Union, Joint Research Centre.', 'הנתונים והחישובים מבוססים על PVGIS – © האיחוד האירופי, המרכז המשותף למחקר (JRC).')}</p>`;
-}
 
-/** Candidate detail: the field's constraint flags from the screening. */
-export function candidateConstraintsHTML(raw, lang) {
-  const c = raw?.constraints, he = lang === 'he', t = (en, h) => he ? h : en;
-  if (!c) return '';
-  const items = (c.hits || []).map(h => `<li>${e(kindLabel(h.kind, lang))}${h.name ? ' · ' + e(h.name) : ''}${h.shareOfParcel != null ? ` · ${(h.shareOfParcel * 100).toFixed(1)}% ${t('of the field', 'מהחלקה')}` : ''}${h.level === 'edge_contact' ? ` (${t('edge contact', 'נגיעה בשוליים')})` : ''}${h.status === 'proposed' ? ` — ${t('proposal in process, not approved', 'הצעה בהליך, לא מאושרת')}` : ''}</li>`).join('');
-  return `<h3>${t('Planning constraints', 'מגבלות תכנוניות')}</h3>${items ? `<ul class="constraint-hits">${items}</ul>` : `<p>${t('None found in TAMA 1 or TAMA 1/26.', 'לא נמצאו בתמ״א 1 או בתמ״א 1/26.')}</p>`}<p class="method-note">${t('SPFI overlap check against Planning Administration layers (מינהל התכנון), checked ', 'בדיקת חפיפה של SPFI מול שכבות מינהל התכנון, נבדק ב־')}${e(String(c.checkedAt || '').slice(0, 10) || t('date unknown', 'תאריך לא ידוע'))}. ${t('Fields inside a nature reserve or national park are already excluded from the candidate list. Flags are for checking, not a ruling; for binding information use Mavat.', 'חלקות בתוך שמורת טבע או גן לאומי כבר הוצאו מרשימת המועמדות. הסימונים נועדו לבדיקה ואינם הכרעה; למידע מחייב יש לפנות למבא״ת.')}</p>`;
-}

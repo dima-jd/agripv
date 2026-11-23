@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-23T09:52:23.263Z",
+  "generatedAt": "2026-11-23T11:19:49.725Z",
   "methodologyVersion": "agripv-screening/3.0.0",
   "parcelSource": {
     "sourceId": "source-moag-agricultural-parcels-2026",
@@ -40,14 +40,14 @@
     "scope": "eligible parcels"
   },
   "constraintsSource": {
-    "fetchedAt": "2026-11-23T04:33:13.832Z",
+    "fetchedAt": "2026-11-23T11:09:49.454Z",
     "file": "constraints-2026-11-23.json",
     "publisher": "Israel Planning Administration (מינהל התכנון)",
     "datasets": [
       "תמ\"א 1",
       "תמ\"א 1/26 (in process)"
     ],
-    "rule": "nature reserve / national park overlap excludes; other layers are flags"
+    "rule": "TAMA 1/24 s.3.5.1 exclusions (reserves and parks, forests, coastal complexes, urban coastal parks, TAMA 35 landscape complexes) exclude; other layers are flags"
   },
   "eligibility": {
     "sql": "CoverType='שטח פתוח' AND Dunam >= 20 AND Dunam <= 250 AND GrowthName IS NOT NULL AND AnafName <> 'לא מעובד'",
@@ -55,22 +55,21 @@
     "jsCount": 34189
   },
   "statusCounts": {
-    "too_small": 126690,
-    "covered": 24087,
-    "eligible": 32996,
-    "not_cultivated": 7826,
-    "protected_area": 5521,
-    "too_large": 1859,
+    "protected_area": 42829,
+    "too_small": 102892,
+    "covered": 21917,
+    "eligible": 23858,
+    "not_cultivated": 6466,
+    "too_large": 1018,
     "inside_agro_plan": 1273,
     "no_geometry": 3,
-    "missing_data": 1,
     "existing_agrivoltaic": 1
   },
   "reasonCounts": {
     "too_small": 161519,
+    "protected_area": 42906,
     "covered_or_structure": 24434,
     "not_cultivated": 8600,
-    "protected_area": 5523,
     "too_large": 2024,
     "inside_agro_plan": 1273,
     "no_geometry": 3,
@@ -78,11 +77,11 @@
     "existing_agrivoltaic": 1
   },
   "bandCounts": {
-    "medium": 15920,
-    "early": 7939,
-    "high": 9137
+    "medium": 11303,
+    "early": 5979,
+    "high": 6576
   },
-  "ranked": 32996,
+  "ranked": 23858,
   "shards": 1024,
   "limits": "Screening only. Status and score rank evidence readiness, not technical, agronomic, legal or commercial suitability. Planning status is not construction evidence."
 }

@@ -109,3 +109,4 @@ dialog#detail.side{position:fixed;margin:0;inset-block:var(--map-header-height,1
 .search-block{margin-top:14px;padding:14px 0 6px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .search-block+.layer-explanation{margin-top:14px}
 .layer-groups{gap:8px}
+.stale-note{margin:12px 0 0;padding:8px 12px;border-inline-start:3px solid #b45309;background:#fff7ed;font-size:13px;color:#7c2d12}

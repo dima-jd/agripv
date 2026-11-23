@@ -10,6 +10,11 @@
   "pvPlansRetrievedAt": "2026-11-22T22:04:46.335Z",
   "storagePlansRetrievedAt": "2026-11-22T22:04:47.099Z",
   "constraintsRetrievedAt": "2026-11-23T04:33:13.832Z",
+  "environmentRetrievedAt": "2026-11-23T09:40:54.775Z",
+  "environmentServiceLastEditAt": {
+    "sensitivity": "2024-04-01T09:35:46.629Z",
+    "landscape_division": "2024-04-01T09:35:46.926Z"
+  },
   "counts": {
     "projects": 9,
     "plans": 117,
@@ -18,9 +23,10 @@
     "public": 18184,
     "pvplans": 153,
     "storage": 32,
-    "constraints": 3858
+    "constraints": 3858,
+    "environment": 671
   },
-  "assembledAt": "2026-11-23T08:55:56.204Z",
+  "assembledAt": "2026-11-23T09:50:07.895Z",
   "potentialSources": [
     {
       "sourceId": "source-govmap-solar-potential-2025",

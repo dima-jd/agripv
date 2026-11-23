@@ -36,6 +36,13 @@
   #detail dl { display:grid; grid-template-columns: auto 1fr; gap:4px 12px; margin:8px 0; }
   #detail dt { color:var(--muted); } #detail dd { margin:0; }
   .note { font-size:12.5px; color:var(--muted); border-inline-start:3px solid var(--accent); padding-inline-start:8px; margin:10px 0; }
+  .filters { margin:12px 0; border:1px solid var(--line); border-radius:8px; padding:8px 10px; background:var(--bg); }
+  .filters summary { cursor:pointer; font-weight:600; min-height:24px; }
+  .filters label { display:grid; grid-template-columns: 1fr auto; gap:8px; align-items:center; margin:6px 0; font-size:13px; }
+  .filters select { font:inherit; padding:3px 6px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); min-height:28px; }
+  .filters .check { display:flex; gap:8px; grid-template-columns:none; }
+  .filters button { font:inherit; border:1px solid var(--line); background:var(--panel); color:var(--fg); border-radius:6px; padding:4px 10px; cursor:pointer; min-height:28px; }
+  #filter-status { font-size:12.5px; color:var(--muted); margin:6px 0 0; }
   .factor { display:flex; justify-content:space-between; font-size:12.5px; }
   @media (max-width: 760px) { #app { grid-template-columns: 1fr; grid-template-rows: 45% 55%; } aside { order:2; border:0; border-top:1px solid var(--line); } }
 </style>
@@ -48,6 +55,7 @@
     <label class="muted" for="q" data-t="searchLabel"></label>
     <input id="q" type="search" autocomplete="off">
     <ul id="results" role="listbox"></ul>
+    <details class="filters" id="filters"></details>
     <div class="legend" id="legend"></div>
     <p class="note" data-t="disclaimer"></p>
     <p class="muted" id="meta"></p>
@@ -57,20 +65,21 @@
 </div>
 <script>
 const T = {
-  en: { title:'Every farm field in Israel', subtitle:'Every agricultural parcel in the Ministry of Agriculture register, with its screening status.', searchLabel:'Find a locality (Hebrew name, e.g. שפיים) or a parcel ID', pageTitle:'Every Farm Field — AgriPV Israel', lang:'עברית', back:'← AgriPV map', spfi:'SPFI', openInMap:'Open this field in the AgriPV map ↗',
+  en: { filters:{ title:'Filter candidate fields', intro:'Shows only candidate fields that match; other parcels are hidden. A field with an unknown value is hidden by that filter.', any:'Any', slope:'Mean slope', solar:'Solar resource (kWh/kWp/yr)', sens:'Environmental sensitivity (Ministry unit)', line:'Mapped HV line (≥110 kV) within', sub:'Mapped substation (≥110 kV) within', flags:'Hide fields with planning-constraint flags', reset:'Clear filters', active:(n)=>n+' filter(s) on', inView:(n)=>n.toLocaleString('en')+' matching fields in view', upTo:'up to', km:'km', atLeast:'at least', levelUpTo:(n)=>'level '+n+' or lower', gridNote:'Grid bands come from OpenStreetMap and describe mapped infrastructure, not available capacity. They are not a connection offer or approval.' }, title:'Every farm field in Israel', subtitle:'Every agricultural parcel in the Ministry of Agriculture register, with its screening status.', searchLabel:'Find a locality (Hebrew name, e.g. שפיים) or a parcel ID', pageTitle:'Every Farm Field — AgriPV Israel', lang:'עברית', back:'← AgriPV map', spfi:'SPFI', openInMap:'Open this field in the AgriPV map ↗',
     disclaimer:'A candidate is a screening result, not an approved or feasible project. Solar resource, shading effects on crops, land rights, grid and economics are not assessed. Preliminary research by SPFI using Ministry of Agriculture data; not an official agricultural or agrivoltaic feasibility assessment, and not a Ministry of Agriculture assessment or recommendation.',
     meta:(m)=>`${m.parcelSource.total.toLocaleString('en')} parcels · ministry layer edited ${(m.parcelSource.layerLastEditAt||'unknown').slice(0,10)} · AGRO ${m.planningSource.batchId}`,
-    status:{ high:'Candidate — high screening priority', medium:'Candidate — medium', early:'Candidate — early', inside_agro_plan:'Inside an AGRO plan', existing_agrivoltaic:'Recorded as agrivoltaic', covered:'Greenhouse, net or structure', not_cultivated:'Not cultivated', too_small:'Under 20 dunam', too_large:'Over 250 dunam', missing_data:'Missing source data', check_failed:'Planning check failed' },
-    reasons:{ cover_type_missing:'Cover type not recorded', existing_agrivoltaic:'Cover type recorded as agrivoltaic', covered_or_structure:'Covered (greenhouse, net, tunnel or structure)', branch_missing:'Branch not recorded', not_cultivated:'Recorded as not cultivated', crop_missing:'Crop not recorded', area_missing:'Area not recorded', too_small:'Smaller than 20 dunam', too_large:'Larger than 250 dunam', no_geometry:'No boundary in source', inside_agro_plan:'Overlaps a current AGRO planning record', overlap_check_failed:'Planning overlap could not be checked' },
-    f:{ parcel:'Parcel ID', crop:'Crop', area:'Area', locality:'Locality', authority:'Authority', water:'Water', recorded:'Record last updated', yearOnly:'year only', why:'Why', score:'Screening score', rank:'National rank', plans:'AGRO plans touching this parcel', dunam:'dunam', none:'None', unknown:'Not recorded', factors:{ shape:'Shape', area:'Area', record_recency:'Record recency', attribute_completeness:'Data completeness', planning_clearance:'Planning clearance' } } },
-  he: { title:'כל החלקות החקלאיות בישראל', subtitle:'כל החלקות החקלאיות במרשם משרד החקלאות, עם סטטוס הסינון של כל אחת.', searchLabel:'חיפוש יישוב או מזהה חלקה', pageTitle:'כל החלקות החקלאיות — AgriPV ישראל', lang:'English', back:'→ למפת AgriPV', spfi:'SPFI', openInMap:'פתיחת החלקה במפת AgriPV ↖',
+    status:{ high:'Candidate — high screening priority', medium:'Candidate — medium', early:'Candidate — early', inside_agro_plan:'Inside an AGRO plan', protected_area:'Nature reserve or national park', existing_agrivoltaic:'Recorded as agrivoltaic', covered:'Greenhouse, net or structure', not_cultivated:'Not cultivated', too_small:'Under 20 dunam', too_large:'Over 250 dunam', missing_data:'Missing source data', check_failed:'Planning check failed' },
+    reasons:{ cover_type_missing:'Cover type not recorded', existing_agrivoltaic:'Cover type recorded as agrivoltaic', covered_or_structure:'Covered (greenhouse, net, tunnel or structure)', branch_missing:'Branch not recorded', not_cultivated:'Recorded as not cultivated', crop_missing:'Crop not recorded', area_missing:'Area not recorded', too_small:'Smaller than 20 dunam', too_large:'Larger than 250 dunam', no_geometry:'No boundary in source', inside_agro_plan:'Overlaps a current AGRO planning record', overlap_check_failed:'Planning overlap could not be checked', protected_area:'Overlaps a nature reserve or national park (national outline plan TAMA 1); the national AgriPV plan excludes these', constraint_check_failed:'Protected-area overlap could not be checked' },
+    f:{ parcel:'Parcel ID', crop:'Crop', area:'Area', locality:'Locality', authority:'Authority', water:'Water', recorded:'Record last updated', yearOnly:'year only', why:'Why', score:'Screening score', rank:'National rank', plans:'AGRO plans touching this parcel', envT:'Environmental sensitivity', envLevels:['', 'very low', 'low', 'moderate', 'considerable', 'high', 'very high'], envUnit:'unit', envMax:'highest in field', envDiv:'landscape division', envNote:'Source: Israel Ministry of Environmental Protection (המשרד להגנת הסביבה). Geographic data reproduced for research and informational purposes. Preliminary screening indicator, not an official environmental assessment. SPFI is an independent research initiative, not affiliated with or endorsed by the Ministry, and does not replace statutory planning procedures or site-specific environmental assessments.', gridT:'Grid proximity (mapped)', gridBands:{ lt1km:'under 1 km', '1to3km':'1–3 km', '3to10km':'3–10 km', gt10km:'over 10 km', lt5km:'under 5 km', '5to15km':'5–15 km', gt15km:'over 15 km' }, hvLine:'HV line', substation:'substation', gridNoteD:'From OpenStreetMap (© OpenStreetMap contributors, ODbL). Distances to mapped ≥110 kV infrastructure, not available capacity; not a connection offer, reservation or approval.', metre:'m', terrain:'Terrain', slope:'mean slope', slopeP90:'steepest 10%', northShare:'north-facing', elev:'elevation', terrainNote:'From the Copernicus DEM (about 30 m). Produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved.', solar:'Solar resource (area)', solarUnit:'kWh per kWp per year', solarNote:'1 kWp fixed reference system, about 5 km cell; not an agrivoltaic yield estimate and not part of the score. Data and calculations based on PVGIS – © European Union, Joint Research Centre.', constraints:'Planning constraints', constraintsNote:'Planning Administration (מינהל התכנון): TAMA 1 and TAMA 1/26 (in process), simplified to about 10 m. SPFI overlap check, not an official determination; for binding information use Mavat.', edge:'edge contact', dunam:'dunam', none:'None', unknown:'Not recorded', factors:{ shape:'Shape', area:'Area', record_recency:'Record recency', attribute_completeness:'Data completeness', planning_clearance:'Planning clearance' } } },
+  he: { filters:{ title:'סינון חלקות מועמדות', intro:'מוצגות רק חלקות מועמדות שעומדות בסינון; שאר החלקות מוסתרות. חלקה שהערך שלה לא ידוע מוסתרת בסינון זה.', any:'הכול', slope:'שיפוע ממוצע', solar:'משאב סולארי (קוט״ש לקילוואט שיא בשנה)', sens:'רגישות סביבתית (יחידת המשרד)', line:'קו מתח עליון ממופה (≥110 ק״ו) במרחק', sub:'תחנת משנה ממופה (≥110 ק״ו) במרחק', flags:'הסתרת חלקות עם סימוני מגבלות תכנוניות', reset:'ניקוי הסינון', active:(n)=>n+' מסננים פעילים', inView:(n)=>n.toLocaleString('he')+' חלקות מתאימות בתצוגה', upTo:'עד', km:'ק״מ', atLeast:'לפחות', levelUpTo:(n)=>'רמה '+n+' ומטה', gridNote:'טווחי הרשת מבוססים על OpenStreetMap ומתארים תשתית ממופה, לא קיבולת פנויה. אין בהם הצעת חיבור או אישור.' }, title:'כל החלקות החקלאיות בישראל', subtitle:'כל החלקות החקלאיות במרשם משרד החקלאות, עם סטטוס הסינון של כל אחת.', searchLabel:'חיפוש יישוב או מזהה חלקה', pageTitle:'כל החלקות החקלאיות — AgriPV ישראל', lang:'English', back:'→ למפת AgriPV', spfi:'SPFI', openInMap:'פתיחת החלקה במפת AgriPV ↖',
     disclaimer:'חלקה מועמדת היא תוצאת סינון, לא פרויקט מאושר או בר-ביצוע. קרינת שמש, השפעת הצל על הגידול, זכויות בקרקע, חיבור לרשת וכדאיות כלכלית לא נבדקו. מחקר ראשוני של SPFI על בסיס נתוני משרד החקלאות; אינו בדיקת היתכנות חקלאית או אגרו-וולטאית רשמית, ואינו הערכה או המלצה של משרד החקלאות.',
     meta:(m)=>`${m.parcelSource.total.toLocaleString('he')} חלקות · שכבת המשרד עודכנה ${(m.parcelSource.layerLastEditAt||'לא ידוע').slice(0,10)} · AGRO ${m.planningSource.batchId}`,
-    status:{ high:'מועמדת — עדיפות סינון גבוהה', medium:'מועמדת — בינונית', early:'מועמדת — ראשונית', inside_agro_plan:'בתוך תוכנית AGRO', existing_agrivoltaic:'רשומה כאגרו-וולטאית', covered:'חממה, רשת או מבנה', not_cultivated:'לא מעובדת', too_small:'מתחת ל-20 דונם', too_large:'מעל 250 דונם', missing_data:'חסרים נתוני מקור', check_failed:'בדיקת התכנון נכשלה' },
-    reasons:{ cover_type_missing:'סוג כיסוי לא נרשם', existing_agrivoltaic:'סוג הכיסוי רשום כאגרו-וולטאי', covered_or_structure:'שטח מכוסה (חממה, רשת, מנהרה או מבנה)', branch_missing:'ענף לא נרשם', not_cultivated:'רשומה כלא מעובדת', crop_missing:'גידול לא נרשם', area_missing:'שטח לא נרשם', too_small:'קטנה מ-20 דונם', too_large:'גדולה מ-250 דונם', no_geometry:'אין גבול במקור', inside_agro_plan:'חופפת לרשומת תכנון AGRO פעילה', overlap_check_failed:'לא ניתן היה לבדוק חפיפה תכנונית' },
-    f:{ parcel:'מזהה חלקה', crop:'גידול', area:'שטח', locality:'יישוב', authority:'רשות', water:'מים', recorded:'תאריך עדכון הרשומה', yearOnly:'שנה בלבד', why:'סיבה', score:'ציון סינון', rank:'דירוג ארצי', plans:'תוכניות AGRO הנוגעות בחלקה', dunam:'דונם', none:'אין', unknown:'לא נרשם', factors:{ shape:'צורה', area:'שטח', record_recency:'עדכניות הרשומה', attribute_completeness:'שלמות הנתונים', planning_clearance:'היעדר חפיפה תכנונית' } } },
+    status:{ high:'מועמדת — עדיפות סינון גבוהה', medium:'מועמדת — בינונית', early:'מועמדת — ראשונית', inside_agro_plan:'בתוך תוכנית AGRO', protected_area:'שמורת טבע או גן לאומי', existing_agrivoltaic:'רשומה כאגרו-וולטאית', covered:'חממה, רשת או מבנה', not_cultivated:'לא מעובדת', too_small:'מתחת ל-20 דונם', too_large:'מעל 250 דונם', missing_data:'חסרים נתוני מקור', check_failed:'בדיקת התכנון נכשלה' },
+    reasons:{ cover_type_missing:'סוג כיסוי לא נרשם', existing_agrivoltaic:'סוג הכיסוי רשום כאגרו-וולטאי', covered_or_structure:'שטח מכוסה (חממה, רשת, מנהרה או מבנה)', branch_missing:'ענף לא נרשם', not_cultivated:'רשומה כלא מעובדת', crop_missing:'גידול לא נרשם', area_missing:'שטח לא נרשם', too_small:'קטנה מ-20 דונם', too_large:'גדולה מ-250 דונם', no_geometry:'אין גבול במקור', inside_agro_plan:'חופפת לרשומת תכנון AGRO פעילה', overlap_check_failed:'לא ניתן היה לבדוק חפיפה תכנונית', protected_area:'חופפת לשמורת טבע או לגן לאומי (תמ״א 1); התוכנית הארצית לאגרו-וולטאיקה אינה מתירה זאת', constraint_check_failed:'לא ניתן היה לבדוק חפיפה לשטח מוגן' },
+    f:{ parcel:'מזהה חלקה', crop:'גידול', area:'שטח', locality:'יישוב', authority:'רשות', water:'מים', recorded:'תאריך עדכון הרשומה', yearOnly:'שנה בלבד', why:'סיבה', score:'ציון סינון', rank:'דירוג ארצי', plans:'תוכניות AGRO הנוגעות בחלקה', envT:'רגישות סביבתית', envLevels:['', 'נמוכה מאוד', 'נמוכה', 'בינונית', 'ניכרת', 'גבוהה', 'גבוהה מאוד'], envUnit:'יחידה', envMax:'הגבוהה בחלקה', envDiv:'חטיבת נוף', envNote:'מקור: המשרד להגנת הסביבה. הנתונים הגאוגרפיים מוצגים למטרות מחקר ומידע. מדד סינון ראשוני, לא הערכה סביבתית רשמית. SPFI היא יוזמת מחקר עצמאית, אינה קשורה למשרד ואינה מאושרת על ידו, ואינה מחליפה הליכי תכנון סטטוטוריים או הערכה סביבתית פרטנית.', gridT:'קרבה לרשת (ממופה)', gridBands:{ lt1km:'פחות מ-1 ק״מ', '1to3km':'1–3 ק״מ', '3to10km':'3–10 ק״מ', gt10km:'מעל 10 ק״מ', lt5km:'פחות מ-5 ק״מ', '5to15km':'5–15 ק״מ', gt15km:'מעל 15 ק״מ' }, hvLine:'קו מתח עליון', substation:'תחנת משנה', gridNoteD:'מתוך OpenStreetMap (© OpenStreetMap contributors, ODbL). מרחקים לתשתית ממופה של 110 ק״ו ומעלה, לא קיבולת פנויה; אין בהם הצעת חיבור, שריון או אישור.', metre:'מ׳', terrain:'טופוגרפיה', slope:'שיפוע ממוצע', slopeP90:'10% התלולים ביותר', northShare:'פונה צפונה', elev:'גובה', terrainNote:'מתוך מודל הגבהים של Copernicus (כ-30 מ׳). Produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved.', solar:'משאב סולארי (אזור)', solarUnit:'קוט״ש לקילוואט שיא בשנה', solarNote:'מערכת ייחוס קבועה של 1 קילוואט שיא, תא של כ-5 ק״מ; לא תפוקה של מערכת אגרו-וולטאית ולא חלק מהציון. הנתונים והחישובים מבוססים על PVGIS – © האיחוד האירופי, המרכז המשותף למחקר (JRC).', constraints:'מגבלות תכנוניות', constraintsNote:'מינהל התכנון: תמ״א 1 ותמ״א 1/26 (בהליך), בפישוט של כ-10 מ׳. בדיקת חפיפה של SPFI, לא קביעה רשמית; למידע מחייב יש לפנות למבא״ת.', edge:'נגיעה בשוליים', dunam:'דונם', none:'אין', unknown:'לא נרשם', factors:{ shape:'צורה', area:'שטח', record_recency:'עדכניות הרשומה', attribute_completeness:'שלמות הנתונים', planning_clearance:'היעדר חפיפה תכנונית' } } },
 };
-const COLORS = { high:'#1a7f45', medium:'#5fb36f', early:'#b4dc9a', inside_agro_plan:'#7b4fc9', existing_agrivoltaic:'#2a6fdb', covered:'#8d969c', not_cultivated:'#c9ced1', too_small:'#e3c98f', too_large:'#c9a35c', missing_data:'#e07b39', check_failed:'#d6336c' };
+const KINDS = { reserve_park:['Nature reserve or national park','שמורת טבע או גן לאומי'], forest:['Forest (TAMA 1)','יער (תמ״א 1)'], flood:['Flood area','שטח הצפה'], proposed_reserve_park:['Proposed reserve or park (in process)','שמורה או גן מוצעים (בהליך)'], proposed_protected:['Proposed protected area (in process)','שטח מוגן מוצע (בהליך)'], proposed_forest:['Proposed forest (in process)','יער מוצע (בהליך)'], proposed_corridor:['Proposed ecological corridor (in process)','מסדרון אקולוגי מוצע (בהליך)'], proposed_bottleneck:['Proposed ecological bottleneck (in process)','צוואר בקבוק אקולוגי מוצע (בהליך)'] };
+const COLORS = { high:'#1a7f45', medium:'#5fb36f', early:'#b4dc9a', inside_agro_plan:'#7b4fc9', protected_area:'#0f5132', existing_agrivoltaic:'#2a6fdb', covered:'#8d969c', not_cultivated:'#c9ced1', too_small:'#e3c98f', too_large:'#c9a35c', missing_data:'#e07b39', check_failed:'#d6336c' };
 const LEGEND_KEYS = Object.keys(COLORS);
 let lang = 'en', meta = null, localities = [], current = null;
 const qs = new URLSearchParams(location.search); if (qs.get('lang') === 'he') lang = 'he';
@@ -86,6 +95,7 @@ const colorExpr = ['case', ['==', ['get','st'], 'eligible'], ['match', ['get','b
 map.on('load', () => {
   map.addLayer({ id:'parcels-fill', type:'fill', source:'parcels', 'source-layer':'parcels', paint:{ 'fill-color':colorExpr, 'fill-opacity':['interpolate',['linear'],['zoom'],7,0.85,13,0.6] } });
   map.addLayer({ id:'parcels-line', type:'line', source:'parcels', 'source-layer':'parcels', minzoom:12, paint:{ 'line-color':'#222', 'line-width':0.4, 'line-opacity':0.5 } });
+  setTimeout(applyFilters);
   map.addLayer({ id:'parcels-selected', type:'line', source:'parcels', 'source-layer':'parcels', filter:['==',['get','id'],-1], paint:{ 'line-color':'#ff2d55', 'line-width':3 } });
 });
 map.on('click', 'parcels-fill', ev => { const f = ev.features[0]; if (f) showParcel(f.properties.id); });
@@ -113,6 +123,7 @@ async function showParcel(id, fly = false) {
   const why = d.reasons.length ? d.reasons.map(r => e(t.reasons[r] || r)).join('<br>') : '';
   const factors = d.screeningFactors ? d.screeningFactors.map(x => `<div class="factor"><span>${e(t.f.factors[x.code] || x.code)}</span><span>${x.points} / ${x.maxPoints}</span></div>`).join('') : '';
   const plans = d.planningOverlap?.plans?.length ? d.planningOverlap.plans.map(p => `${e(p.planNumber)} · ${(p.shareOfParcel * 100).toFixed(1)}% · ${e(p.statusMain)}`).join('<br>') : t.f.none;
+  const cons = d.constraints?.length ? d.constraints.map(c => `${e((KINDS[c.kind] || [c.kind, c.kind])[lang === 'he' ? 1 : 0])}${c.name ? ' · ' + e(c.name) : ''}${c.shareOfParcel != null ? ' · ' + (c.shareOfParcel * 100).toFixed(1) + '%' : ''}${c.level === 'edge_contact' ? ' (' + e(t.f.edge) + ')' : ''}`).join('<br>') : t.f.none;
   box.innerHTML = `<div class="row"><strong><span class="sw" style="display:inline-block;vertical-align:-2px;background:${COLORS[statusKey(d)]}"></span> ${e(t.status[statusKey(d)])}</strong></div>
     <dl><dt>${e(t.f.parcel)}</dt><dd>${e(d.id)}</dd><dt>${e(t.f.crop)}</dt><dd>${e(crop ?? t.f.unknown)}</dd>
     <dt>${e(t.f.area)}</dt><dd>${d.areaDunam == null ? e(t.f.unknown) : e(d.areaDunam) + ' ' + e(t.f.dunam)}</dd>
@@ -120,7 +131,7 @@ async function showParcel(id, fly = false) {
     <dt>${e(t.f.water)}</dt><dd>${e(d.waterType ?? t.f.unknown)}</dd><dt>${e(t.f.recorded)}</dt><dd>${e(date)}</dd>
     ${why ? `<dt>${e(t.f.why)}</dt><dd>${why}</dd>` : ''}
     ${d.screeningRank ? `<dt>${e(t.f.score)}</dt><dd>${e(d.screeningScore)} / 100</dd><dt>${e(t.f.rank)}</dt><dd>${d.screeningRank.toLocaleString(lang)}</dd>` : ''}
-    <dt>${e(t.f.plans)}</dt><dd>${plans}</dd></dl>${factors}${d.inMap ? `<p><a href="../?lang=${lang}&layer=candidates&record=agripv-parcel-${encodeURIComponent(d.id)}">${e(t.openInMap)}</a></p>` : ''}`;
+    <dt>${e(t.f.plans)}</dt><dd>${plans}</dd>${d.environment ? `<dt>${e(t.f.envT)}</dt><dd>${d.environment.sensitivityLevel ? e(d.environment.sensitivityLevel + ' — ' + t.f.envLevels[d.environment.sensitivityLevel]) : e(t.f.unknown)}${d.environment.sensitivityUnit ? ' · ' + e(t.f.envUnit) + ' ' + e(d.environment.sensitivityUnit) : ''}${d.environment.maxLevelInField && d.environment.maxLevelInField !== d.environment.sensitivityLevel ? ' · ' + e(t.f.envMax) + ' ' + d.environment.maxLevelInField : ''}${d.environment.landscapeDivision ? ' · ' + e(t.f.envDiv) + ' ' + (d.environment.landscapeDivisionLink ? `<a href="${e(d.environment.landscapeDivisionLink)}" target="_blank" rel="noopener noreferrer">${e(d.environment.landscapeDivision)}</a>` : e(d.environment.landscapeDivision)) : ''}<br><small>${e(t.f.envNote)}</small></dd>` : ''}${d.gridProximity ? `<dt>${e(t.f.gridT)}</dt><dd>${e(t.f.hvLine)} ${e(t.f.gridBands[d.gridProximity.hvLineBand])} · ${e(t.f.substation)} ${e(t.f.gridBands[d.gridProximity.substationBand])}<br><small>${e(t.f.gridNoteD)}</small></dd>` : ''}${d.terrain ? `<dt>${e(t.f.terrain)}</dt><dd>${e(t.f.slope)} ${d.terrain.slopeMeanDeg}° · ${e(t.f.slopeP90)} ${d.terrain.slopeP90Deg}° · ${e(t.f.northShare)} ${Math.round(d.terrain.northFacingShare * 100)}% · ${e(t.f.elev)} ${d.terrain.elevationMeanM} ${e(t.f.metre)}<br><small>${e(t.f.terrainNote)}</small></dd>` : ''}${d.solarResource ? `<dt>${e(t.f.solar)}</dt><dd>${d.solarResource.pvoutKwhPerKwpYear.toLocaleString(lang)} ${e(t.f.solarUnit)}<br><small>${e(t.f.solarNote)}</small></dd>` : ''}<dt>${e(t.f.constraints)}</dt><dd>${cons}<br><small>${e(t.f.constraintsNote)}</small></dd></dl>${factors}${d.inMap ? `<p><a href="../?lang=${lang}&layer=candidates&record=agripv-parcel-${encodeURIComponent(d.id)}">${e(t.openInMap)}</a></p>` : ''}`;
 }
 
 function renderLegend() {
@@ -134,7 +145,7 @@ function render() {
   document.getElementById('back-map').href = '../?lang=' + lang; document.getElementById('to-spfi').href = 'https://spfi.co.il/' + lang + '/';
   document.getElementById('lang').textContent = T[lang].lang;
   document.getElementById('meta').textContent = meta ? T[lang].meta(meta) : '';
-  renderLegend(); search(); if (current != null) showParcel(current);
+  renderLegend(); renderFilters(); search(); if (current != null) showParcel(current);
 }
 function search() {
   const q = norm(document.getElementById('q').value), ul = document.getElementById('results');
@@ -149,6 +160,53 @@ document.getElementById('q').addEventListener('input', search);
 document.getElementById('lang').onclick = () => { lang = lang === 'en' ? 'he' : 'en'; render(); };
 render();
 Promise.all([getJSON('meta.json'), getJSON('localities.json')]).then(([m, l]) => { meta = m; localities = l; render(); }).catch(err => { document.getElementById('meta').textContent = String(err); });
+
+// ---- Filters (candidate fields only; tile properties sl, pv, es, gl, gs, cf) ----
+var FILTERS, UPPER, fstate; // assigned lazily: render() runs before this part of the script
+function initFilters() { if (fstate) return; FILTERS = { slope:[['',null],['20','≤ 2°'],['50','≤ 5°']], solar:[['',null],['1650','≥ 1,650'],['1750','≥ 1,750']], sens:[['',null],['3',3],['4',4]], line:[['',null],['0','lt1km'],['1','1to3km'],['2','3to10km']], sub:[['',null],['0','lt5km'],['1','5to15km']] }; UPPER = { lt1km:1, '1to3km':3, '3to10km':10, lt5km:5, '5to15km':15 }; fstate = { slope:'', solar:'', sens:'', line:'', sub:'', flags:false }; }
+function filterExpr() { initFilters();
+  const c = [['==', ['get','st'], 'eligible']];
+  if (fstate.slope) c.push(['<=', ['coalesce', ['get','sl'], 1e9], Number(fstate.slope)]);
+  if (fstate.solar) c.push(['>=', ['coalesce', ['get','pv'], -1], Number(fstate.solar)]);
+  if (fstate.sens) c.push(['<=', ['coalesce', ['get','es'], 99], Number(fstate.sens)]);
+  if (fstate.line) c.push(['<=', ['coalesce', ['get','gl'], 99], Number(fstate.line)]);
+  if (fstate.sub) c.push(['<=', ['coalesce', ['get','gs'], 99], Number(fstate.sub)]);
+  if (fstate.flags) c.push(['!', ['has', 'cf']]);
+  return ['all', ...c];
+}
+function activeFilters() { initFilters(); return ['slope','solar','sens','line','sub'].filter(k => fstate[k]).length + (fstate.flags ? 1 : 0); }
+function applyFilters() {
+  if (!map.getLayer('parcels-fill')) return;
+  const f = activeFilters() ? filterExpr() : null;
+  map.setFilter('parcels-fill', f); map.setFilter('parcels-line', f);
+  updateFilterStatus();
+}
+function updateFilterStatus() {
+  const box = document.getElementById('filter-status'); if (!box) return;
+  const n = activeFilters(), t = T[lang].filters;
+  if (!n) { box.textContent = ''; return; }
+  const ids = new Set(map.queryRenderedFeatures({ layers:['parcels-fill'] }).map(f => f.properties.id));
+  box.textContent = t.active(n) + ' · ' + t.inView(ids.size);
+}
+function renderFilters() { initFilters();
+  const t = T[lang].filters, box = document.getElementById('filters'), open = box.open || activeFilters() > 0;
+  const opt = (key, labelFor) => FILTERS[key].map(([v, x]) => `<option value="${v}"${fstate[key] === v ? ' selected' : ''}>${e(v === '' ? t.any : labelFor(x))}</option>`).join('');
+  box.innerHTML = `<summary>${e(t.title)}</summary><p class="muted">${e(t.intro)}</p>
+    <label>${e(t.slope)}<select data-f="slope">${opt('slope', x => t.upTo + ' ' + x.replace('≤ ', ''))}</select></label>
+    <label>${e(t.solar)}<select data-f="solar">${opt('solar', x => t.atLeast + ' ' + x.replace('≥ ', ''))}</select></label>
+    <label>${e(t.sens)}<select data-f="sens">${opt('sens', x => t.levelUpTo(x))}</select></label>
+    <label>${e(t.line)}<select data-f="line">${opt('line', x => t.upTo + ' ' + UPPER[x] + ' ' + t.km)}</select></label>
+    <label>${e(t.sub)}<select data-f="sub">${opt('sub', x => t.upTo + ' ' + UPPER[x] + ' ' + t.km)}</select></label>
+    <label class="check"><input type="checkbox" data-f="flags"${fstate.flags ? ' checked' : ''}> ${e(t.flags)}</label>
+    <button type="button" id="filter-reset">${e(t.reset)}</button><p id="filter-status" aria-live="polite"></p><p class="muted">${e(t.gridNote)}</p>`;
+  box.open = open;
+  box.querySelectorAll('select[data-f]').forEach(sel => sel.addEventListener('change', () => { fstate[sel.dataset.f] = sel.value; applyFilters(); }));
+  box.querySelector('input[data-f=flags]').addEventListener('change', ev => { fstate.flags = ev.target.checked; applyFilters(); });
+  box.querySelector('#filter-reset').addEventListener('click', () => { Object.assign(fstate, { slope:'', solar:'', sens:'', line:'', sub:'', flags:false }); renderFilters(); applyFilters(); });
+  updateFilterStatus();
+}
+map.on('moveend', updateFilterStatus);
+map.on('idle', () => { if (activeFilters()) updateFilterStatus(); });
 </script>
 </body>
 </html>

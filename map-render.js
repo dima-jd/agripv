@@ -18,6 +18,16 @@ const PALETTE = {
     field_verification_priority: ['#d9822b', 'To verify in the field', 'לאימות בשטח'],
     not_in_watch: ['#8d969c', 'Earlier-stage plan', 'תוכנית בשלב מוקדם'],
   },
+  pvplans: {
+    approved: ['#c2410c', 'Approved', 'מאושרת'],
+    deposit: ['#f59e0b', 'Deposit published', 'פרסום הפקדה'],
+    threshold: ['#fcd34d', 'Threshold check', 'עמידה בתנאי סף'],
+  },
+  storage: {
+    approved: ['#0e7490', 'Approved', 'מאושרת'],
+    deposit: ['#06b6d4', 'Deposit published', 'פרסום הפקדה'],
+    threshold: ['#a5f3fc', 'Threshold check', 'עמידה בתנאי סף'],
+  },
   candidates: {
     high: ['#1a7f45', 'High screening priority', 'עדיפות סינון גבוהה'],
     medium: ['#5fb36f', 'Medium', 'בינונית'],
@@ -34,6 +44,7 @@ function keyFor(r, cwOf) {
   if (r.layer === 'projects') return PALETTE.projects[r.stageKey] ? r.stageKey : 'other';
   if (r.layer === 'plans') return cwOf?.(r) || 'not_in_watch';
   if (r.layer === 'candidates') return r.raw?.screeningPriority || 'early';
+  if (r.layer === 'pvplans' || r.layer === 'storage') return ({ 'מאושרת': 'approved', 'פרסום הפקדה בעיתונות': 'deposit', 'עמידה בתנאי סף': 'threshold' })[r.stage] || 'threshold';
   return 'all';
 }
 
@@ -45,7 +56,7 @@ export function colorFor(r, cwOf) {
 export function legendHTML(layer, lang) {
   const items = Object.values(PALETTE[layer] || {});
   if (!items.length) return '';
-  const title = { projects: ['Colour = reported stage', 'צבע = השלב המדווח'], plans: ['Colour = construction watch (SPFI analysis)', 'צבע = מעקב הקמה (ניתוח של SPFI)'], candidates: ['Colour = screening priority', 'צבע = עדיפות סינון'] }[layer];
+  const title = { projects: ['Colour = reported stage', 'צבע = השלב המדווח'], plans: ['Colour = construction watch (SPFI analysis)', 'צבע = מעקב הקמה (ניתוח של SPFI)'], candidates: ['Colour = screening priority', 'צבע = עדיפות סינון'], pvplans: ['Colour = official planning status', 'צבע = סטטוס תכנוני רשמי'], storage: ['Colour = official planning status', 'צבע = סטטוס תכנוני רשמי'] }[layer];
   const i = lang === 'he' ? 1 : 0;
   return `${title ? `<p class="legend-title">${title[i]}</p>` : ''}<ul>${items.map(([c, en, he]) => `<li><span class="swatch" style="background:${c}" aria-hidden="true"></span>${i ? he : en}</li>`).join('')}</ul>`;
 }

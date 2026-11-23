@@ -40,6 +40,15 @@ export function constraintsToggleHTML(on, lang, data) {
   return `<div class="constraint-toggle"><label><input type="checkbox" id="show-constraints"${on ? ' checked' : ''}> ${t('Show planning constraints (reserves, parks, forests, flood areas)', 'הצגת מגבלות תכנוניות (שמורות, גנים, יערות, שטחי הצפה)')}</label>${legend}</div>`;
 }
 
+/** Candidate detail: terrain from the Copernicus DEM. Not part of the score. */
+export function candidateTerrainHTML(raw, lang) {
+  const s = raw?.terrain, he = lang === 'he', t = (en, h) => he ? h : en;
+  const pct = v => Math.round(v * 100) + '%';
+  const body = s ? `<p>${t('Mean slope', 'שיפוע ממוצע')}: <strong>${e(s.slopeMeanDeg)}°</strong> · ${t('steepest 10% of the field', '10% התלולים ביותר בחלקה')}: ${e(s.slopeP90Deg)}° · ${t('steeper than 10%', 'תלול מ-10%')}: ${pct(s.shareOver10Pct)} · ${t('north-facing', 'פונה צפונה')}: ${pct(s.northFacingShare)} · ${t('elevation', 'גובה')}: ${e(s.elevationMeanM)} ${t('m', 'מ׳')}</p>`
+    : `<p>${t('Unknown: not computed for this field.', 'לא ידוע: לא חושב לחלקה זו.')}</p>`;
+  return `<h3>${t('Terrain', 'טופוגרפיה')}</h3>${body}<p class="method-note">${t('From the Copernicus elevation model at about 30 m, over the pixels inside the field. Steep or north-facing ground usually makes solar mounting harder and less productive. Information only, not part of the screening score. ', 'מתוך מודל הגבהים של Copernicus ברזולוציה של כ-30 מ׳, על פני הפיקסלים שבתוך החלקה. קרקע תלולה או פונה צפונה מקשה בדרך כלל על התקנה סולארית ומפחיתה תפוקה. מידע בלבד, לא חלק מציון הסינון. ')}Produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved.</p>`;
+}
+
 /** Candidate detail: solar resource for the field's area (PVGIS). Not part of the score. */
 export function candidateSolarHTML(raw, lang) {
   const s = raw?.solarResource, he = lang === 'he', t = (en, h) => he ? h : en;

@@ -67,7 +67,7 @@ export function candidatePanelHTML(r, lang) {
     t('Field record: Israel Ministry of Agriculture and Food Security, “Agricultural parcels for analysis”.', 'רשומת החלקה: משרד החקלאות וביטחון המזון, “Agricultural parcels for analysis”.'),
     t('Planning constraints: Israel Planning Administration (מינהל התכנון), TAMA 1, TAMA 35 and TAMA 1/26, applied per TAMA 1/24; for binding information use Mavat.', 'מגבלות תכנוניות: מינהל התכנון, תמ״א 1, תמ״א 35 ותמ״א 1/26, לפי תמ״א 1/24; למידע מחייב יש לפנות למבא״ת.'),
     'Data and calculations based on PVGIS – © European Union, Joint Research Centre.',
-    'Produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved.',
+    'Produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved. The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.',
     t('Source: Israel Ministry of Environmental Protection (המשרד להגנת הסביבה). Geographic data reproduced for research and informational purposes.', 'מקור: המשרד להגנת הסביבה. הנתונים הגאוגרפיים מוצגים למטרות מחקר ומידע.'),
     t('Grid distances: © OpenStreetMap contributors (ODbL).', 'מרחקי רשת: © OpenStreetMap contributors (ODbL).'),
   ];

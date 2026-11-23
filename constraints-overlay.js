@@ -40,6 +40,14 @@ export function constraintsToggleHTML(on, lang, data) {
   return `<div class="constraint-toggle"><label><input type="checkbox" id="show-constraints"${on ? ' checked' : ''}> ${t('Show planning constraints (reserves, parks, forests, flood areas)', 'הצגת מגבלות תכנוניות (שמורות, גנים, יערות, שטחי הצפה)')}</label>${legend}</div>`;
 }
 
+/** Candidate detail: solar resource for the field's area (PVGIS). Not part of the score. */
+export function candidateSolarHTML(raw, lang) {
+  const s = raw?.solarResource, he = lang === 'he', t = (en, h) => he ? h : en;
+  const body = s ? `<p>${t('Annual PV output, reference system', 'תפוקה סולארית שנתית, מערכת ייחוס')}: <strong>${Number(s.pvoutKwhPerKwpYear).toLocaleString(lang)} ${t('kWh per kWp', 'קוט״ש לקילוואט שיא')}</strong> · ${t('optimal tilt', 'זווית אופטימלית')} ${e(s.optimalTiltDeg)}°</p>`
+    : `<p>${t('Unknown: no value for this area.', 'לא ידוע: אין ערך לאזור זה.')}</p>`;
+  return `<h3>${t('Solar resource (area)', 'משאב סולארי (אזור)')}</h3>${body}<p class="method-note">${t(`For a 1 kWp fixed system at the optimal angle with 14% losses, averaged over about 5 km (${e(s?.radiationDb || 'PVGIS-SARAH3')}, ${e(s?.years || '2005–2023')}). It describes the area's sunshine, not the yield of an agrivoltaic design, and it is not part of the screening score. `, `למערכת קבועה של 1 קילוואט שיא בזווית האופטימלית עם 14% הפסדים, בממוצע על פני כ-5 ק״מ (${e(s?.radiationDb || 'PVGIS-SARAH3')}, ${e(s?.years || '2005–2023')}). הנתון מתאר את הקרינה באזור, לא תפוקה של מערכת אגרו-וולטאית, ואינו חלק מציון הסינון. `)}${t('Data and calculations based on PVGIS – © European Union, Joint Research Centre.', 'הנתונים והחישובים מבוססים על PVGIS – © האיחוד האירופי, המרכז המשותף למחקר (JRC).')}</p>`;
+}
+
 /** Candidate detail: the field's constraint flags from the screening. */
 export function candidateConstraintsHTML(raw, lang) {
   const c = raw?.constraints, he = lang === 'he', t = (en, h) => he ? h : en;

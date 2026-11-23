@@ -22,7 +22,7 @@
   "methodology": {
     "eligibilitySql": "CoverType='שטח פתוח' AND Dunam >= 20 AND Dunam <= 250 AND GrowthName IS NOT NULL AND AnafName <> 'לא מעובד'",
     "eligibleUniverseCount": 34189,
-    "selection": "Top 500 parcels nationally by field-level screening score (ties: larger area first, then parcel ID). No district quota or locality cap. Fields overlapping an area where TAMA 1/24 (section 3.5.1) does not allow agrivoltaics are excluded: nature reserves and national parks, forests, coastal complexes, urban coastal parks (TAMA 1) and landscape complexes (TAMA 35). Proposals in TAMA 1/26, the coastal fabric, high landscape-environmental sensitivity and flood areas are flagged, not excluded. Parcels whose exact geometry overlaps a current AGRO plan (≥ 5% of parcel or ≥ 2000 m²) are excluded; smaller boundary slivers are kept and flagged as edge contact.",
+    "selection": "Top 500 parcels nationally by field-level screening score (ties: larger area first, then parcel ID). No district quota or locality cap. Fields overlapping an area where TAMA 1/24 (section 3.5.1) does not allow agrivoltaics are excluded: nature reserves and national parks, forests, coastal complexes, urban coastal parks, the coastal environment zone (TAMA 1) and landscape complexes (TAMA 35). Proposals in TAMA 1/26, the coastal fabric, high landscape-environmental sensitivity and flood areas are flagged, not excluded. Parcels whose exact geometry overlaps a current AGRO plan (≥ 5% of parcel or ≥ 2000 m²) are excluded; smaller boundary slivers are kept and flagged as edge contact.",
     "priorityBands": "Absolute score thresholds: high ≥ 80, medium ≥ 60, otherwise early. Bands rank evidence and screening readiness, not technical suitability.",
     "identifiers": "candidateId and sourceParcelId use the ministry parcel ID, which survived the 2026 layer reload. sourceFeatureId (OBJECTID) and sourceGlobalId are volatile and must not be used as keys.",
     "dates": "sourceRecordDate is the ministry Up_Date field: the date the database record was last updated (confirmed by the Ministry of Agriculture, Nov 2026), not the date the crop was observed in the field. Year-only values are marked precision \"year\". sourceUpdatedAt is a system edit timestamp.",
@@ -41,10 +41,10 @@
     "universeFetched": 34189,
     "withoutGeometry": 0,
     "excludedPlanningOverlap": 437,
-    "excludedProtectedArea": 9932,
+    "excludedProtectedArea": 9962,
     "publishedWithConstraintFlags": 241,
     "excludedOverlapCheckFailed": 0,
-    "rankedEligible": 23858,
+    "rankedEligible": 23828,
     "published": 500,
     "priorityBands": {
       "high": 500

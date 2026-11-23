@@ -53,3 +53,59 @@ body{overflow:hidden}#map-header{height:85px}#map-header .header-row{height:85px
 .constraint-legend .swatch{width:14px;height:14px;border:2px solid;border-radius:2px;flex:none}
 .constraint-legend .swatch.dashed{border-style:dashed}
 .constraint-hits{margin:.3rem 0;padding-inline-start:1.2rem}
+
+/* ---- 2026-11 UX audit: hierarchy, panel, compact credits ---- */
+.map-note{display:none}
+#controls .lead{font-size:15px;margin:8px 0 0}
+.layer-groups{display:grid;gap:10px;margin:16px 0 0}
+.layer-group{display:grid;gap:6px}
+.group-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.layer-group .filters{display:flex;flex-wrap:wrap;gap:6px;margin:0}
+.layer-group .chip{min-height:34px}
+.search-block{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.map-panel{margin-top:12px;border:1px solid var(--line);border-radius:6px;padding:0 12px;background:#fff}
+.map-panel>summary{cursor:pointer;font-weight:600;font-size:14px;min-height:40px;display:flex;align-items:center}
+.map-panel[open]{padding-bottom:10px}
+.map-panel .constraint-toggle{margin:4px 0 10px}
+.about-note{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+.map-download{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:12px}
+.leaflet-control-attribution{white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis;max-width:min(520px,calc(100vw - 40px))!important;cursor:pointer}
+.leaflet-control-attribution.expanded,.leaflet-control-attribution:focus-within{white-space:normal!important;max-width:min(760px,calc(100vw - 40px))!important}
+/* detail: side panel on wide screens, modal sheet on small ones */
+dialog#detail.side{position:fixed;margin:0;inset-block:var(--map-header-height,131px) 0;inset-inline-end:0;inset-inline-start:auto;width:460px;max-width:100vw;height:auto;max-height:none;border-radius:0;padding:28px 26px 40px;box-shadow:-8px 0 30px #0a203a2e;overflow:auto;z-index:1000}
+[dir=rtl] dialog#detail.side{box-shadow:8px 0 30px #0a203a2e}
+#detail .detail-sub{color:var(--muted);margin:4px 0 14px;font-size:14px}
+#detail h2{font-size:24px;line-height:1.2;margin:6px 0 0}
+.glance{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden;margin:0}
+.glance .fact{background:#fff;padding:10px 12px;margin:0}
+.glance dt{font-size:12px;color:var(--muted)}
+.glance dd{margin:2px 0 0;font-weight:700;font-size:16px}
+.glance dd span{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+.glance-note{font-size:12.5px;color:var(--muted);margin:10px 0 6px}
+.sec{border-bottom:1px solid var(--line)}
+.sec>summary{cursor:pointer;display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:12px 0;min-height:44px;list-style:none}
+.sec>summary::-webkit-details-marker{display:none}
+.sec>summary h3{font-size:15px;margin:0;display:flex;gap:8px;align-items:center}
+.sec>summary h3::before{content:"▸";font-size:12px;color:var(--muted);transition:transform .15s}
+.sec[open]>summary h3::before{transform:rotate(90deg)}
+[dir=rtl] .sec>summary h3::before{content:"◂"}
+[dir=rtl] .sec[open]>summary h3::before{transform:rotate(-90deg)}
+.sec-sum{font-size:13px;color:var(--muted);text-align:end}
+.sec-body{padding:0 0 12px}
+.sec-body p{margin:6px 0}
+.note{font-size:12.5px;color:var(--muted)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:4px 0;font-size:14px}
+.kv dt{color:var(--muted)}.kv dd{margin:0}
+.hits{margin:4px 0;padding-inline-start:18px;font-size:14px}
+.credits{margin-top:18px;padding:12px 14px;background:var(--paper);border-radius:6px;font-size:12px;color:var(--muted)}
+.credits h3{font-size:13px;margin:0 0 6px;color:var(--ink)}
+.credits ul{margin:0 0 8px;padding-inline-start:16px}
+.credits li{margin:3px 0!important;font-size:12px!important}
+@media(prefers-reduced-motion:reduce){.sec>summary h3::before{transition:none}}
+
+.muted-tiles{filter:grayscale(1) contrast(.9) brightness(1.06)}
+#detail .sec>summary h3{font-size:16px;margin:0;line-height:1.3}
+#detail .credits h3{font-size:13px;margin:0 0 6px}
+.search-block{margin-top:14px;padding:14px 0 6px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.search-block+.layer-explanation{margin-top:14px}
+.layer-groups{gap:8px}

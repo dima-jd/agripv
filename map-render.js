@@ -87,6 +87,10 @@ export function drawRecords(map, rows, onSelect, lang, cwOf) {
     for (const r of rows) {
       if (!r.geometryValid || large && !intersects(r.extent, viewport)) continue;
       const color = colorFor(r, cwOf);
+      if (r.layer === 'candidates' && r.extent && map.getZoom() < 11) { // small fields: a dot until zoomed in
+        L.circleMarker([(r.extent[1] + r.extent[3]) / 2, (r.extent[0] + r.extent[2]) / 2], { radius: 6, color: '#fff', weight: 1.5, fillColor: color, fillOpacity: 1 }).on('click', () => onSelect(r.id)).addTo(group);
+        continue;
+      }
       try {
         L.geoJSON(r.geometry, {
           style: { color, weight: 2, fillOpacity: .25 },

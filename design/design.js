@@ -3,16 +3,21 @@
 import { VARIANTS, MODULE, SETBACK, PAD, COVER_MAX, toLocal, layout, sectionOf, heightCheck, components } from './layout.js';
 import { planSVG, sectionSVG } from './draw.js';
 import { recommend, fitLabel } from './recommend.js';
+import { controls, clampSettings, yieldFor, PARAM } from './settings.js';
 const SHADE = { tolerant: ['Tolerates moderate shade', 'עמיד לצל מתון'], moderate: ['Some yield loss under shade', 'אובדן יבול מסוים בצל'], sensitive: ['Shade-sensitive', 'רגיש לצל'], unknown: ['Not enough evidence', 'אין די ראיות'] };
 const CITE = { laub2022: 'Laub et al. 2022, Agron. Sustain. Dev.', schweiger2023: 'Schweiger et al. 2023, Plants People Planet', pataczek2023: 'Pataczek et al. 2023, Physiol. Plant.', fraunhofer2017: 'Fraunhofer ISE 2017, Heggelbach trial' };
 
 const e = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const params = new URLSearchParams(location.search);
 let lang = params.get('lang') === 'he' ? 'he' : 'en';
-let variantKey = ['A', 'B', 'C'].includes(params.get('v')) ? params.get('v') : null;
+const KEYS = Object.keys(VARIANTS).sort();
+let variantKey = KEYS.includes(params.get('v')) ? params.get('v') : null;
+// custom settings for the open variant, from the URL (t, h, ax, p); cleared when switching variant
+let custom = Object.fromEntries(Object.entries(PARAM).map(([k, q]) => [k, params.get(q)]).filter(([, x]) => x !== null && x !== '' && Number.isFinite(Number(x))).map(([k, x]) => [k, Number(x)]));
 const id = params.get('id') || '';
 const t = (en, he) => lang === 'he' ? he : en;
 const m = () => t(' m', ' מ׳');
+const fmtCtl = (c, x) => c.unit === '%' ? num(x * 100) + '%' : num(x, c.step < 1 ? 1 : 0) + (c.unit === '°' ? '°' : m());
 const num = (v, d = 0) => Number(v).toLocaleString(lang === 'he' ? 'he-IL' : 'en-GB', { maximumFractionDigits: d, minimumFractionDigits: d });
 const LANES = { BANDS: { lt1km: ['under 1 km', 'פחות מ-1 ק״מ'], '1to3km': ['1–3 km', '1–3 ק״מ'], '3to10km': ['3–10 km', '3–10 ק״מ'], gt10km: ['over 10 km', 'מעל 10 ק״מ'], lt5km: ['under 5 km', 'פחות מ-5 ק״מ'], '5to15km': ['5–15 km', '5–15 ק״מ'], gt15km: ['over 15 km', 'מעל 15 ק״מ'] } };
 
@@ -31,6 +36,8 @@ const isFieldCrop = p => /גד"ש|גידולי שדה/.test(p.category || '');
 function sync() {
   const u = new URL(location.href);
   u.searchParams.set('lang', lang); if (variantKey) u.searchParams.set('v', variantKey);
+  for (const q of Object.values(PARAM)) u.searchParams.delete(q);
+  for (const [k, x] of Object.entries(custom)) if (PARAM[k]) u.searchParams.set(PARAM[k], x);
   history.replaceState(null, '', u.href);
 }
 
@@ -49,34 +56,34 @@ function render() {
   }
   const p = field.properties, fieldCrop = isFieldCrop(p), rec = recommend(p.category, p.cropShade);
   variantKey ??= rec.primary;
-  const v = VARIANTS[variantKey];
+  const v = clampSettings({ ...VARIANTS[variantKey], ...custom }, fieldCrop);
   const L = layout(local, v);
   const F = L.figures, sec = sectionOf(v), hc = heightCheck(v, fieldCrop), comp = components(F, v);
-  const yieldK = p.designYield?.[variantKey] ?? null;
+  const yieldK = yieldFor(v, p.designYield);
   const mwh = yieldK ? F.kWp * yieldK / 1000 : null;
   const crop = lang === 'he' ? p.crop : (p.cropNameEn || p.crop);
   document.title = t(`Concept designs · screening rank #${p.screeningRank} — AgriPV Israel`, `תכנוני קונספט · מקום ${p.screeningRank} בדירוג — AgriPV ישראל`);
 
-  const all = ['A', 'B', 'C'].map(k => { const Lk = layout(local, VARIANTS[k]), sk = sectionOf(VARIANTS[k]), yk = p.designYield?.[k] ?? null; return { k, L: Lk, s: sk, mwh: yk ? Lk.figures.kWp * yk / 1000 : null }; });
-  const compare = `<div class="compare-wrap"><table class="compare"><caption>${t('All three variants on this field', 'שלוש החלופות בחלקה זו')}</caption><thead><tr><th scope="col">${t('Variant', 'חלופה')}</th><th scope="col">${t('Capacity', 'הספק')}</th><th scope="col">${t('Output per year', 'תפוקה שנתית')}</th><th scope="col">${t('Panel cover', 'כיסוי')}</th><th scope="col">${t('Heights', 'גבהים')}</th><th scope="col">${t('Crop fit', 'התאמה לגידול')}</th></tr></thead><tbody>${all.map(a => `<tr${a.k === variantKey ? ' class="cur"' : ''}><th scope="row">${a.k}. ${e(VARIANTS[a.k].name[lang === 'he' ? 1 : 0])}</th><td>${num(a.L.figures.kWp / 1000, 1)} MWp</td><td>${a.mwh ? num(a.mwh / 1000, 1) + ' GWh' : t('unknown', 'לא ידוע')}</td><td>${num(a.L.figures.cover * 100, 1)}%</td><td>${num(a.s.lowerEdge, 1)}–${num(a.s.top, 1)}${m()}</td><td><span class="fit fit-${rec.fits[a.k].fit}">${e(fitLabel(rec.fits[a.k].fit, lang))}</span></td></tr>`).join('')}</tbody></table></div>`;
-  const tabs = ['A', 'B', 'C'].map(k => `<button type="button" role="tab" class="v-tab${k === variantKey ? ' active' : ''}" aria-selected="${k === variantKey}" data-v="${k}"><span class="v-key">${k}</span><span class="v-name">${e(VARIANTS[k].name[lang === 'he' ? 1 : 0])}</span><span class="v-fit fit-${rec.fits[k].fit}">${e(fitLabel(rec.fits[k].fit, lang))}${k === rec.primary ? ' · ' + t('recommended', 'מומלץ') : ''}</span></button>`).join('');
+  const all = KEYS.map(k => { const Lk = layout(local, VARIANTS[k]), sk = sectionOf(VARIANTS[k]), yk = yieldFor(VARIANTS[k], p.designYield); return { k, L: Lk, s: sk, mwh: yk ? Lk.figures.kWp * yk / 1000 : null }; });
+  const compare = `<div class="compare-wrap"><table class="compare"><caption>${t('All variants on this field (default settings)', 'כל החלופות בחלקה זו (הגדרות ברירת מחדל)')}</caption><thead><tr><th scope="col">${t('Variant', 'חלופה')}</th><th scope="col">${t('Capacity', 'הספק')}</th><th scope="col">${t('Output per year', 'תפוקה שנתית')}</th><th scope="col">${t('Panel cover', 'כיסוי')}</th><th scope="col">${t('Heights', 'גבהים')}</th><th scope="col">${t('Crop fit', 'התאמה לגידול')}</th></tr></thead><tbody>${all.map(a => `<tr${a.k === variantKey ? ' class="cur"' : ''}><th scope="row">${a.k}. ${e(VARIANTS[a.k].name[lang === 'he' ? 1 : 0])}</th><td>${num(a.L.figures.kWp / 1000, 1)} MWp</td><td>${a.mwh ? num(a.mwh / 1000, 1) + ' GWh' : t('unknown', 'לא ידוע')}</td><td>${num(a.L.figures.cover * 100, 1)}%</td><td>${num(a.s.lowerEdge, 1)}–${num(a.s.top, 1)}${m()}</td><td><span class="fit fit-${rec.fits[a.k].fit}">${e(fitLabel(rec.fits[a.k].fit, lang))}</span></td></tr>`).join('')}</tbody></table></div>`;
+  const tabs = KEYS.map(k => `<button type="button" role="tab" class="v-tab${k === variantKey ? ' active' : ''}" aria-selected="${k === variantKey}" data-v="${k}"><span class="v-key">${k}</span><span class="v-name">${e(VARIANTS[k].name[lang === 'he' ? 1 : 0])}</span><span class="v-fit fit-${rec.fits[k].fit}">${e(fitLabel(rec.fits[k].fit, lang))}${k === rec.primary ? ' · ' + t('recommended', 'מומלץ') : ''}</span></button>`).join('');
   const fig = (label, value, note) => `<div class="fact"><dt>${e(label)}</dt><dd>${value}${note ? `<span>${e(note)}</span>` : ''}</dd></div>`;
   const facts = [
     fig(t('Capacity', 'הספק'), `${num(F.kWp / 1000, 1)} MWp`, `${num(F.modules)} ${t('modules', 'פאנלים')} · ~${MODULE.wp} Wp`),
     fig(t('Expected output', 'תפוקה צפויה'), mwh ? `${num(mwh / 1000, 1)} GWh/${t('yr', 'שנה')}` : t('unknown', 'לא ידוע'), yieldK ? `${num(yieldK)} kWh/kWp · PVGIS` : null),
-    fig(t('Panel cover', 'כיסוי פאנלים'), `${num(F.cover * 100, 1)}%`, t(`of the cultivated area (limit ${COVER_MAX * 100}%)`, `מהשטח המעובד (מגבלה ${COVER_MAX * 100}%)`)),
-    fig(t('Rows and pitch', 'שורות ומרווח'), `${num(F.rowCount)} × ${num(L.pitch, 1)}${m()}`, `${num(F.rowLength / 1000, 2)} km ${t('of rows', 'שורות')}`),
-    fig(t('Heights', 'גבהים'), `${num(sec.lowerEdge, 1)}–${num(sec.top, 1)}${m()}`, v.key === 'B' ? `${t('axis', 'ציר')} ${num(sec.axis, 1)}${m()} · ±${v.maxRotation}°` : v.key === 'A' ? `${t('tilt', 'הטיה')} ${v.tilt}°` : t('vertical', 'אנכי')),
+    fig(t('Panel cover', 'כיסוי פאנלים'), `${num(F.cover * 100, 1)}%`, (v.key === 'E' ? t('of the cultivated area (greenhouse PV: no 30% cap)', 'מהשטח המעובד (חממה: ללא מגבלת 30%)') : t(`of the cultivated area (limit ${COVER_MAX * 100}%)`, `מהשטח המעובד (מגבלה ${COVER_MAX * 100}%)`))),
+    v.key === 'D' ? fig(t('Trackers', 'עוקבים'), `${num(F.trackers)}`, `${num(F.rowCount)} ${t('rows', 'שורות')} × ${num(L.pitch, 1)}${m()} · ${num(v.along)}${m()} ${t('apart', 'ביניהם')}`) : v.key === 'E' ? fig(t('Greenhouse', 'חממה'), `${num(F.greenhouseArea / 1000, 1)} ${t('dunam', 'דונם')}`, `${num(F.rowCount)} ${t('spans of', 'מפתחים של')} ${num(v.span, 1)}${m()}`) : fig(t('Rows and pitch', 'שורות ומרווח'), `${num(F.rowCount)} × ${num(L.pitch, 1)}${m()}`, `${num(F.rowLength / 1000, 2)} km ${t('of rows', 'שורות')}`),
+    fig(t('Heights', 'גבהים'), `${num(sec.lowerEdge, 1)}–${num(sec.top, 1)}${m()}`, v.key === 'D' ? `${t('hub', 'ציר')} ${num(sec.axis, 1)}${m()} · ${t('two-axis', 'דו-צירי')}` : v.key === 'E' ? `${t('gutter to ridge', 'ממרזב עד רכס')} · ${t('PV on', 'פאנלים על')} ${num(v.roofCover * 100)}% ${t('of the roof', 'מהגג')}` : v.key === 'B' ? `${t('axis', 'ציר')} ${num(sec.axis, 1)}${m()} · ±${v.maxRotation}°` : v.key === 'A' ? `${t('tilt', 'הטיה')} ${v.tilt}°` : t('vertical', 'אנכי')),
     fig(t('Land kept in farming', 'שטח שנשאר בעיבוד'), `${num((1 - F.underPanels / F.fieldArea) * 100, 0)}%`, t('of the field is not under panels', 'מהחלקה אינו מתחת לפאנלים')),
   ].join('');
 
-  const ruleText = hc.rule === 'vertical' ? t('Vertical systems are exempt from the minimum-height rules (TAMA 1/24 s. 3.6.1.3).', 'מתקנים אנכיים פטורים מכללי הגובה המינימלי (תמ״א 1/24 סעיף 3.6.1.3).')
+  const ruleText = hc.rule === 'greenhouse' ? t('Greenhouse PV is permitted under the PV chapter of TAMA 1 (s. 5.1.5, PV on or under a greenhouse roof), not the agrivoltaic chapter; the greenhouse itself needs its own permit.', 'פאנלים בחממה מותרים לפי פרק המתקנים הפוטו-וולטאיים בתמ״א 1 (סעיף 5.1.5, על גג החממה או מתחתיו), לא לפי פרק האגרו-וולטאיקה; החממה עצמה דורשת היתר משלה.') : hc.rule === 'vertical' ? t('Vertical systems are exempt from the minimum-height rules (TAMA 1/24 s. 3.6.1.3).', 'מתקנים אנכיים פטורים מכללי הגובה המינימלי (תמ״א 1/24 סעיף 3.6.1.3).')
     : hc.rule === 'field' ? t(`Field crops: the lowest panel edge must be at least 1.5 m (TAMA 1/24 s. 3.6.1.2). Here: ${num(hc.value, 1)} m.`, `גידולי שדה: קצה הפאנל התחתון בגובה 1.5 מ׳ לפחות (תמ״א 1/24 סעיף 3.6.1.2). כאן: ${num(hc.value, 1)} מ׳.`)
       : t(`Orchards and other crops: the mounting axis must be at least 4.5 m (TAMA 1/24 s. 3.6.1.1). Here: ${num(hc.value, 1)} m.`, `מטעים וגידולים אחרים: ציר המתקן בגובה 4.5 מ׳ לפחות (תמ״א 1/24 סעיף 3.6.1.1). כאן: ${num(hc.value, 1)} מ׳.`);
 
   const g = p.gridProximity;
   const conn = comp.acKw <= 300 ? t('likely low voltage', 'ככל הנראה מתח נמוך') : comp.acKw <= 15000 ? t('likely medium voltage (distribution, 22/33 kV)', 'ככל הנראה מתח גבוה (חלוקה, 22/33 ק״ו)') : t('likely high voltage (transmission)', 'ככל הנראה מתח עליון (הולכה)');
-  const structure = { A: t('Steel portal frames carrying two-module-high tables; posts about every 6.8 m along each row', 'מסגרות פלדה הנושאות שולחנות בגובה שני פאנלים; עמודים כל כ-6.8 מ׳ לאורך כל שורה'), B: t('Single-axis trackers with a slew drive per row; posts about every 7 m', 'עוקבים חד-ציריים עם מנוע סיבוב לכל שורה; עמודים כל כ-7 מ׳'), C: t('Vertical frames holding two landscape modules; posts about every 4.8 m', 'מסגרות אנכיות הנושאות שני פאנלים לרוחב; עמודים כל כ-4.8 מ׳') }[variantKey];
+  const structure = { A: t('Steel portal frames carrying two-module-high tables; posts about every 6.8 m along each row', 'מסגרות פלדה הנושאות שולחנות בגובה שני פאנלים; עמודים כל כ-6.8 מ׳ לאורך כל שורה'), B: t('Single-axis trackers with a slew drive per row; posts about every 7 m', 'עוקבים חד-ציריים עם מנוע סיבוב לכל שורה; עמודים כל כ-7 מ׳'), C: t('Vertical frames holding two landscape modules; posts about every 4.8 m', 'מסגרות אנכיות הנושאות שני פאנלים לרוחב; עמודים כל כ-4.8 מ׳'), D: t('One pole per tracker with a two-axis drive; 12 modules per table', 'עמוד אחד לכל עוקב עם הנעה דו-צירית; 12 פאנלים לשולחן'), E: t('Greenhouse frame (9.6 m spans, 4.5 m gutter); modules fixed on the south-facing roof slopes', 'שלד חממה (מפתחים של 9.6 מ׳, מרזב בגובה 4.5 מ׳); פאנלים קבועים על שיפועי הגג הדרומיים') }[variantKey];
 
   main.innerHTML = `
   <p class="concept-flag" role="note"><strong>${t('Concept for research, not for construction.', 'קונספט למחקר, לא לביצוע.')}</strong> ${t('Generic layout from the field outline and the national AgriPV plan’s rules. A real design needs a licensed engineer, a site survey, the landowner and the network operator.', 'פריסה כללית לפי גבול החלקה וכללי התוכנית הארצית לאגרו-וולטאיקה. תכנון אמיתי דורש מהנדס מוסמך, סקר אתר, את בעל הקרקע ואת מפעיל הרשת.')}</p>
@@ -88,9 +95,13 @@ function render() {
     <h2 id="v-title">${variantKey}. ${e(v.name[lang === 'he' ? 1 : 0])}</h2>
     <p class="v-desc">${e(v.describe[lang === 'he' ? 1 : 0])}</p>
     <div class="cropfit fit-box-${rec.fits[variantKey].fit}"><p><strong>${t('Crop fit', 'התאמה לגידול')}: ${e(fitLabel(rec.fits[variantKey].fit, lang))}</strong> — ${e(rec.fits[variantKey].why[lang === 'he' ? 1 : 0])}</p><p class="d-note">${e(crop)}: ${e((SHADE[p.cropShade?.class] || SHADE.unknown)[lang === 'he' ? 1 : 0])}${p.cropShade?.sources?.length ? ` (${e(p.cropShade.sources.map(s => CITE[s] || s).join('; '))})` : ''}. ${t('Indicative: evidence is mostly from temperate climates and shade-cloth trials, not a yield prediction for this field.', 'אינדיקטיבי: הראיות הן בעיקר מאקלים ממוזג ומניסויי רשתות הצללה, ואינן תחזית יבול לחלקה זו.')}</p></div>
+    <details class="settings"${Object.keys(custom).length ? ' open' : ''}><summary>${t('Adjust this concept', 'התאמת הקונספט')} <span class="d-note">${v.key === 'E' ? t('within plan limits', 'בגבולות התוכנית') : t('within TAMA 1/24 limits', 'בגבולות תמ״א 1/24')}</span></summary>
+      <div class="ctl-grid">${controls(v, fieldCrop).map(c => `<label class="ctl"><span>${e(c.label[lang === 'he' ? 1 : 0])}: <output id="out-${c.key}">${fmtCtl(c, c.value)}</output></span><input type="range" data-key="${c.key}" min="${c.min}" max="${c.max}" step="${c.step}" value="${c.value}" aria-describedby="lim-${c.key}"><small id="lim-${c.key}">${fmtCtl(c, c.min)}–${fmtCtl(c, c.max)}</small></label>`).join('')}</div>
+      <p class="d-note">${t('Limits follow the plan: panel cover up to 30% of the cultivated area, minimum heights by crop type, and a maximum height of 7 m (8 m for trackers). Output for other tilts is interpolated from PVGIS runs at 10–35°.', 'הגבולות לפי התוכנית: כיסוי פאנלים עד 30% מהשטח המעובד, גבהים מינימליים לפי סוג הגידול וגובה מרבי של 7 מ׳ (8 מ׳ לעוקבים). התפוקה בזוויות אחרות מחושבת באינטרפולציה מהרצות PVGIS ב-10–35°.')}</p>
+      ${Object.keys(custom).length ? `<button type="button" id="reset-settings" class="linkbtn">${t('Reset to defaults', 'איפוס לברירת המחדל')}</button>` : ''}</details>
     <div class="drawings">
       <figure class="drawing plan"><figcaption>${t('Plan view on the field', 'מבט על החלקה')}</figcaption>${planSVG(local, L, t)}
-        <ul class="d-legend"><li><span class="sw row"></span>${t('Panel rows', 'שורות פאנלים')}</li><li><span class="sw plot"></span>${t('Control plot (no panels)', 'חלקת ביקורת (ללא פאנלים)')}</li><li><span class="sw pad"></span>${t('Equipment pad', 'משטח ציוד')}</li><li><span class="sw edge"></span>${t(`${SETBACK} m access strip inside the boundary`, `רצועת גישה של ${SETBACK} מ׳ לאורך הגבול`)}</li></ul></figure>
+        <ul class="d-legend"><li><span class="sw row"></span>${t('Panel rows', 'שורות פאנלים')}</li><li><span class="sw plot"></span>${t('Control plot (no panels)', 'חלקת ביקורת (ללא פאנלים)')}</li><li><span class="sw pad"></span>${t('Equipment pad', 'משטח ציוד')}</li>${v.key === 'E' ? `<li><span class="sw span"></span>${t('Greenhouse spans', 'מפתחי החממה')}</li>` : ''}<li><span class="sw edge"></span>${t(`${SETBACK} m access strip inside the boundary`, `רצועת גישה של ${SETBACK} מ׳ לאורך הגבול`)}</li></ul></figure>
       <div class="side"><figure class="drawing section"><figcaption>${t('Cross-section, to scale', 'חתך, בקנה מידה')}</figcaption>${sectionSVG(v, L, t)}<p class="d-note">${e(ruleText)}</p></figure>
       <dl class="glance">${facts}</dl></div>
     </div>
@@ -116,7 +127,13 @@ function render() {
     <p class="actions"><button type="button" id="print">${t('Print this concept sheet', 'הדפסת גיליון הקונספט')}</button> <a href="../?lang=${lang}&layer=candidates&record=${encodeURIComponent(id)}">${t('Field details on the map', 'פרטי החלקה במפה')}</a></p>
     <p class="credits">${t('Field outline: Israel Ministry of Agriculture and Food Security. Rules: Israel Planning Administration (מינהל התכנון), TAMA 1/24; for binding information use Mavat. Data and calculations based on PVGIS – © European Union, Joint Research Centre. Grid distances © OpenStreetMap contributors (ODbL). Preliminary research by SPFI, an independent research initiative, not affiliated with or endorsed by any of these bodies.', 'גבול החלקה: משרד החקלאות וביטחון המזון. כללים: מינהל התכנון, תמ״א 1/24; למידע מחייב יש לפנות למבא״ת. הנתונים והחישובים מבוססים על PVGIS – © האיחוד האירופי, המרכז המשותף למחקר. מרחקי רשת © OpenStreetMap contributors (ODbL). מחקר ראשוני של SPFI, יוזמת מחקר עצמאית שאינה קשורה לגופים אלה ואינה מאושרת על ידם.')}</p>
   </section>`;
-  main.querySelectorAll('.v-tab').forEach(b => b.onclick = () => { variantKey = b.dataset.v; sync(); render(); main.querySelector('.v-tab.active')?.focus(); });
+  main.querySelectorAll('.ctl input').forEach(inp => {
+    const c = controls(v, fieldCrop).find(x => x.key === inp.dataset.key), out = main.querySelector('#out-' + inp.dataset.key);
+    inp.oninput = () => { out.textContent = fmtCtl(c, Number(inp.value)); };
+    inp.onchange = () => { custom = { ...custom, [inp.dataset.key]: Number(inp.value) }; sync(); render(); main.querySelector(`.ctl input[data-key="${inp.dataset.key}"]`)?.focus(); };
+  });
+  main.querySelector('#reset-settings')?.addEventListener('click', () => { custom = {}; sync(); render(); });
+  main.querySelectorAll('.v-tab').forEach(b => b.onclick = () => { custom = {}; variantKey = b.dataset.v; sync(); render(); main.querySelector('.v-tab.active')?.focus(); });
   main.querySelector('#print').onclick = () => window.print();
 }
 

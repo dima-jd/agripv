@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-22T21:07:03.860Z",
+  "generatedAt": "2026-11-23T09:15:29.346Z",
   "methodologyVersion": "agripv-screening/3.0.0",
   "parcelSource": {
     "sourceId": "source-moag-agricultural-parcels-2026",
@@ -12,17 +12,40 @@
     "sourceLastEditAt": "2026-11-20T10:06:46.402Z",
     "plans": 117
   },
+  "terrainSource": {
+    "dem": "Copernicus DEM GLO-30 (1 arcsecond), tiles N29–N33 × E034–E035",
+    "computedAt": "2026-11-23T09:12:41.108Z",
+    "scope": "eligible parcels"
+  },
+  "solarSource": {
+    "service": "https://re.jrc.ec.europa.eu/api/v5_3/PVcalc",
+    "fetchedAt": "2026-11-23T08:53:36.834Z",
+    "cellDeg": 0.05,
+    "referenceSystem": "1 kWp, free-standing, optimal fixed tilt and azimuth, 14% system loss, DEM horizon",
+    "scope": "eligible parcels"
+  },
+  "constraintsSource": {
+    "fetchedAt": "2026-11-23T04:33:13.832Z",
+    "file": "constraints-2026-11-23.json",
+    "publisher": "Israel Planning Administration (מינהל התכנון)",
+    "datasets": [
+      "תמ\"א 1",
+      "תמ\"א 1/26 (in process)"
+    ],
+    "rule": "nature reserve / national park overlap excludes; other layers are flags"
+  },
   "eligibility": {
     "sql": "CoverType='שטח פתוח' AND Dunam >= 20 AND Dunam <= 250 AND GrowthName IS NOT NULL AND AnafName <> 'לא מעובד'",
     "serverCount": 34189,
     "jsCount": 34189
   },
   "statusCounts": {
-    "too_small": 130980,
-    "covered": 24293,
-    "eligible": 33752,
-    "not_cultivated": 8018,
-    "too_large": 1936,
+    "too_small": 126690,
+    "covered": 24087,
+    "eligible": 32996,
+    "not_cultivated": 7826,
+    "protected_area": 5521,
+    "too_large": 1859,
     "inside_agro_plan": 1273,
     "no_geometry": 3,
     "missing_data": 1,
@@ -32,6 +55,7 @@
     "too_small": 161519,
     "covered_or_structure": 24434,
     "not_cultivated": 8600,
+    "protected_area": 5523,
     "too_large": 2024,
     "inside_agro_plan": 1273,
     "no_geometry": 3,
@@ -39,11 +63,11 @@
     "existing_agrivoltaic": 1
   },
   "bandCounts": {
-    "medium": 16286,
-    "early": 8229,
-    "high": 9237
+    "medium": 15920,
+    "early": 7939,
+    "high": 9137
   },
-  "ranked": 33752,
+  "ranked": 32996,
   "shards": 1024,
   "limits": "Screening only. Status and score rank evidence readiness, not technical, agronomic, legal or commercial suitability. Planning status is not construction evidence."
 }

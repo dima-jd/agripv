@@ -25,6 +25,16 @@ export const VARIANTS = {
     axisHeight: 4.5, maxRotation: 55, orientation: 'portrait', postSpacing: 7.0,
     describe: ['One module wide, turning east to west on a north–south axis 4.5 m above ground, above orchard or crop rows.', 'פאנל אחד ברוחב, מסתובב ממזרח למערב על ציר צפון–דרום בגובה 4.5 מ׳, מעל שורות מטע או גידול.'],
   },
+  D: {
+    key: 'D', rows: 'EW', name: ['Dual-axis trackers on poles', 'עוקבים דו-ציריים על עמודים'], grid: true,
+    hubHeight: 5.5, maxTilt: 60, tableModulesWide: 6, tableModulesHigh: 2, along: 12, pitch: 9, postSpacing: 12,
+    describe: ['Pole-mounted tables of 12 modules that follow the sun on two axes, spaced on a grid with machinery lanes around each pole.', 'שולחנות של 12 פאנלים על עמודים, העוקבים אחר השמש בשני צירים, בפריסת רשת עם מעברי מיכון סביב כל עמוד.'],
+  },
+  E: {
+    key: 'E', rows: 'EW', name: ['PV greenhouse', 'חממה סולארית'], greenhouse: true,
+    span: 9.6, gutter: 4.5, ridge: 6.0, roofCover: 0.25, roofSlope: 20, postSpacing: 5,
+    describe: ['A greenhouse with modules on part of the south-facing roof slopes. It turns open land into covered cultivation, under the PV chapter of TAMA 1 (s. 5.1.5), not the agrivoltaic chapter.', 'חממה עם פאנלים על חלק משיפועי הגג הדרומיים. היא הופכת שטח פתוח לגידול מכוסה, לפי פרק המתקנים הפוטו-וולטאיים בתמ״א 1 (סעיף 5.1.5) ולא לפי פרק האגרו-וולטאיקה.'],
+  },
   C: {
     key: 'C', rows: 'NS', name: ['Vertical bifacial rows', 'שורות אנכיות דו-פניות'],
     lowerEdge: 0.8, modulesUp: 2, orientation: 'landscape', footprint: 0.3, pitch: 10, postSpacing: 4.8,
@@ -42,6 +52,14 @@ export function sectionOf(v) {
     const w = MODULE.long, half = w / 2;
     return { depth: w, lowerEdge: v.axisHeight - half * Math.sin(rad(v.maxRotation)), top: v.axisHeight + half * Math.sin(rad(v.maxRotation)), axis: v.axisHeight, modulesPerMetre: 1 / MODULE.short };
   }
+  if (v.key === 'D') {
+    const w = v.tableModulesWide * MODULE.short, d = v.tableModulesHigh * MODULE.long, drop = d / 2 * Math.sin(rad(v.maxTilt));
+    return { depth: d, tableWidth: w, tableArea: w * d, lowerEdge: v.hubHeight - drop, top: v.hubHeight + drop, axis: v.hubHeight, modulesPerTracker: v.tableModulesWide * v.tableModulesHigh };
+  }
+  if (v.key === 'E') {
+    const depth = v.span * v.roofCover;
+    return { depth, lowerEdge: v.gutter, top: v.ridge, axis: null, modulesPerMetre: Math.floor(depth / MODULE.long) / MODULE.short || 1 / MODULE.short };
+  }
   const h = v.modulesUp * MODULE.short;
   return { depth: v.footprint, lowerEdge: v.lowerEdge, top: v.lowerEdge + h, axis: null, modulesPerMetre: v.modulesUp / MODULE.long };
 }
@@ -50,8 +68,10 @@ export function sectionOf(v) {
 export function heightCheck(v, fieldCrop) {
   const s = sectionOf(v);
   if (v.key === 'C') return { rule: 'vertical', ok: s.top <= 7, note: 's. 3.6.1.3' };
-  if (fieldCrop) return { rule: 'field', ok: s.lowerEdge >= 1.5 && s.top <= (v.key === 'B' ? 8 : 7), value: s.lowerEdge, note: 's. 3.6.1.2' };
-  return { rule: 'nonfield', ok: s.axis >= 4.5 && s.top <= (v.key === 'B' ? 8 : 7), value: s.axis, note: 's. 3.6.1.1' };
+  if (v.key === 'E') return { rule: 'greenhouse', ok: true, note: 'PV chapter s. 5.1.5' };
+  const maxTop = v.key === 'B' || v.key === 'D' ? 8 : 7;
+  if (fieldCrop) return { rule: 'field', ok: s.lowerEdge >= 1.5 && s.top <= maxTop, value: s.lowerEdge, note: 's. 3.6.1.2' };
+  return { rule: 'nonfield', ok: s.axis >= 4.5 && s.top <= maxTop, value: s.axis, note: 's. 3.6.1.1' };
 }
 
 // ---- geometry helpers (local metres) ----
@@ -116,7 +136,7 @@ export function layout(local, variant, opts = {}) {
   const cultivated = fieldArea - roadArea - (plot ? control : 0) - (pad ? PAD.w * PAD.d : 0);
 
   // pitch: from the variant (C) or from the cover cap (A, B), never above 30% of the cultivated area
-  let pitch = v.pitch ?? Math.ceil((sec.depth / (v.cover ?? COVER_MAX)) * 10) / 10;
+  let pitch = v.greenhouse ? v.span : (v.pitch ?? Math.ceil((sec.depth / (v.cover ?? COVER_MAX)) * 10) / 10);
   const build = () => {
     const rows = []; const h = sec.depth / 2;
     for (let w = w0 + SETBACK + h; w <= w1 - SETBACK - h; w += pitch) {
@@ -128,21 +148,27 @@ export function layout(local, variant, opts = {}) {
     return rows;
   };
   let rows = build();
-  let cover = rows.reduce((s, r) => s + r.length * sec.depth, 0) / cultivated;
-  for (let guard = 0; cover > COVER_MAX && guard < 50; guard++) { pitch = Math.round((pitch + 0.2) * 10) / 10; rows = build(); cover = rows.reduce((s, r) => s + r.length * sec.depth, 0) / cultivated; }
+  const trackersIn = r => r.length >= sec.tableWidth ? Math.floor((r.length - sec.tableWidth) / v.along) + 1 : 0;
+  const under = rs => v.grid ? rs.reduce((s, r) => s + trackersIn(r) * sec.tableArea, 0) : rs.reduce((s, r) => s + r.length * sec.depth, 0);
+  let cover = under(rows) / cultivated;
+  const capped = !v.greenhouse; // greenhouse PV falls under the PV chapter, not the 30% agrivoltaic cap
+  for (let guard = 0; capped && cover > COVER_MAX && guard < 50; guard++) { pitch = Math.round((pitch + 0.2) * 10) / 10; rows = build(); cover = under(rows) / cultivated; }
 
   const rowLength = rows.reduce((s, r) => s + r.length, 0);
-  const modules = Math.floor(rows.reduce((s, r) => s + Math.floor(r.length * sec.modulesPerMetre), 0));
+  const trackers = v.grid ? rows.reduce((s, r) => s + trackersIn(r), 0) : 0;
+  const modules = v.grid ? trackers * sec.modulesPerTracker : Math.floor(rows.reduce((s, r) => s + Math.floor(r.length * sec.modulesPerMetre), 0));
   const kWp = modules * MODULE.wp / 1000;
-  const posts = rows.reduce((s, r) => s + Math.ceil(r.length / v.postSpacing) + 1, 0);
+  const posts = v.grid ? trackers : rows.reduce((s, r) => s + Math.ceil(r.length / v.postSpacing) + 1, 0);
   const rect = (cu, cw, du, dw) => [[cu - du, cw - dw], [cu + du, cw - dw], [cu + du, cw + dw], [cu - du, cw + dw], [cu - du, cw - dw]].map(back);
   return {
     variant: v.key, section: sec, pitch, rowsDir: v.rows,
     frameToLocal: back,
-    rows: rows.map(r => ({ w: r.w, u0: r.u0, u1: r.u1, length: r.length, line: [back([r.u0, r.w]), back([r.u1, r.w])], poly: rect((r.u0 + r.u1) / 2, r.w, r.length / 2, sec.depth / 2) })),
+    rows: rows.map(r => ({ w: r.w, u0: r.u0, u1: r.u1, length: r.length, line: [back([r.u0, r.w]), back([r.u1, r.w])], poly: rect((r.u0 + r.u1) / 2, r.w, r.length / 2, sec.depth / 2),
+      ...(v.greenhouse ? { span: rect((r.u0 + r.u1) / 2, r.w, r.length / 2, pitch / 2) } : {}),
+      ...(v.grid ? { units: Array.from({ length: trackersIn(r) }, (_, i) => rect(r.u0 + sec.tableWidth / 2 + i * v.along, r.w, sec.tableWidth / 2, sec.depth / 2)) } : {}) })),
     controlPlot: plot ? { area: control, poly: rect(plot.cu, plot.cw, plot.du, plot.dw) } : null,
     pad: pad ? { area: PAD.w * PAD.d, poly: rect(pad.cu, pad.cw, pad.du, pad.dw) } : null,
-    figures: { fieldArea, roadArea, cultivated, underPanels: rowLength * sec.depth, cover, rowCount: rows.length, rowLength, modules, kWp, posts },
+    figures: { fieldArea, roadArea, cultivated, underPanels: under(rows), cover, rowCount: rows.length, rowLength, modules, kWp, posts, trackers, greenhouseArea: v.greenhouse ? rowLength * pitch : 0 },
   };
 }
 

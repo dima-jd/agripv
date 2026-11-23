@@ -9,7 +9,7 @@ const lshape = { type: 'Polygon', coordinates: [[[34.79, 31.25], [34.796, 31.25]
 const inside = (rings, [x, y]) => { let c = false; for (const ring of rings[0]) for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) { const [xi, yi] = ring[i], [xj, yj] = ring[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; };
 
 for (const [name, g] of [['rectangle', rect], ['L shape', lshape]]) {
-  for (const k of ['A', 'B', 'C']) {
+  for (const k of ['A', 'B', 'C', 'D']) {
     test(`${name} ${k}: cover <= 30%, rows inside the field, control plot >= 1 dunam and 2%`, () => {
       const L0 = toLocal(g), L = layout(L0, VARIANTS[k]);
       assert.ok(L.rows.length > 0, 'has rows');
@@ -36,4 +36,15 @@ test('rectangle sanity: area, setback and density are plausible', () => {
   assert.ok(SETBACK === 5);
   const c = components(F, VARIANTS.A);
   assert.ok(c.inverters >= Math.ceil(F.kWp / 1.2 / 100) && (c.mv ? c.stations >= 1 : true));
+});
+
+test('D dual-axis: trackers placed, cover <= 30%, top <= 8 m; E greenhouse: cover follows the roof share', () => {
+  const L0 = toLocal(rect);
+  const d = layout(L0, VARIANTS.D);
+  assert.ok(d.figures.trackers > 0 && d.figures.modules === d.figures.trackers * 12);
+  assert.ok(d.figures.cover <= COVER_MAX + 1e-9);
+  assert.ok(heightCheck(VARIANTS.D, true).ok && heightCheck(VARIANTS.D, false).ok);
+  const e = layout(L0, { ...VARIANTS.E, roofCover: 0.4 });
+  assert.equal(heightCheck(VARIANTS.E, true).rule, 'greenhouse');
+  assert.ok(e.figures.greenhouseArea > 0 && e.figures.cover > 0.3, 'greenhouse PV is not capped at 30%');
 });

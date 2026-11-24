@@ -112,7 +112,3 @@ dialog#detail.side{position:fixed;margin:0;inset-block:var(--map-header-height,1
 .stale-note{margin:12px 0 0;padding:8px 12px;border-inline-start:3px solid #b45309;background:#fff7ed;font-size:13px;color:#7c2d12}
 .design-link{margin:10px 0 14px}.design-link a{display:inline-flex;align-items:center;min-height:40px;padding:8px 14px;border-radius:6px;background:var(--ink,#152029);color:#fff;font-weight:600;text-decoration:none}
 #detail .design-link a,#detail .design-link a:visited{color:#fff}#detail .design-link a:hover,#detail .design-link a:focus-visible{background:#0b3a8f;color:#fff}
-
-.water-pop p{margin:.4em 0}
-.water-pop .flag{color:#8a4b00}
-.water-pop .badge{display:inline-block;padding:0 .4em;border-radius:3px;font-size:.85em}

@@ -15,6 +15,30 @@
     "sensitivity": "2024-04-01T09:35:46.629Z",
     "landscape_division": "2024-04-01T09:35:46.926Z"
   },
+  "waterRetrievedAt": "2026-11-23T20:31:32.359Z",
+  "water": {
+    "retrievedAt": "2026-11-23T20:31:32.359Z",
+    "bodies": 515,
+    "byType": {
+      "reservoir": 388,
+      "fishpond": 10,
+      "pond": 34,
+      "basin": 33,
+      "effluent": 50
+    },
+    "allowedType": 448,
+    "annexB10Sensitive": 63,
+    "inLandscapeComplex": 134,
+    "indicativeMwp": 1719,
+    "indicativeGwh": 2730,
+    "scenario": {
+      "coverShare": 0.3,
+      "mwpPerCoveredHa": 1.2,
+      "tilt": 10,
+      "minAreaHa": 1
+    },
+    "source": "OpenStreetMap contributors (ODbL); aggregate figures only"
+  },
   "counts": {
     "projects": 9,
     "plans": 117,
@@ -24,9 +48,10 @@
     "pvplans": 153,
     "storage": 32,
     "constraints": 4745,
-    "environment": 671
+    "environment": 671,
+    "water": 515
   },
-  "assembledAt": "2026-11-23T20:19:58.470Z",
+  "assembledAt": "2026-11-24T19:53:19.172Z",
   "potentialSources": [
     {
       "sourceId": "source-govmap-solar-potential-2025",
